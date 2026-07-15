@@ -146,12 +146,12 @@ Decisões:
 - [x] Subtask 4.4: Tratamento de token inválido (404 → "Convite não encontrado") e evento `expired` ("álbum fechado").
 
 ### Task 5 — Captura e Upload de Fotos (Convidado)
-- [ ] Subtask 5.1: Acesso à câmera via `getUserMedia` + fallback `input file`.
-- [ ] Subtask 5.2: Preview da foto antes de enviar.
-- [ ] Subtask 5.3: Compressão/resize no cliente antes do upload.
-- [ ] Subtask 5.4: Upload para storage + registro no banco.
-- [ ] Subtask 5.5: Feedback de sucesso e "tirar outra".
-- [ ] Subtask 5.6: Limite anti-spam por sessão (rate limit).
+- [x] Subtask 5.1: Acesso à câmera via `getUserMedia` (traseira, fullscreen) + fallback `input file capture`.
+- [x] Subtask 5.2: Preview da foto antes de enviar ("Tirar outra" / "Enviar momento").
+- [x] Subtask 5.3: Compressão/resize no cliente (canvas, máx 1920px, JPEG q0.8 — fotos ~20-25 KB no teste).
+- [x] Subtask 5.4: Upload direto pro S3 via presigned URL (backend só assina) + confirmação registra no banco (valida existência no S3 e prefixo da key).
+- [x] Subtask 5.5: Feedback de sucesso — contador "N momentos enviados ✨" + volta pra câmera.
+- [ ] Subtask 5.6: Rate limit por sessão (limite de 30 fotos do plano Degustação já implementado no presign; throttle por IP/sessão fica p/ Task 8).
 
 ### Task 6 — Álbum do Casal
 - [ ] Subtask 6.1: Galeria de fotos do evento (grid + lazy load).

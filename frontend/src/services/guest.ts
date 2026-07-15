@@ -11,6 +11,31 @@ export function getGuestEvent(token: string) {
   return api.get<IGuestEvent>(`/guest/events/${token}`)
 }
 
+export function requestPhotoUpload(token: string, contentType: string) {
+  return api.post<{ uploadUrl: string; storageKey: string }>(
+    `/guest/events/${token}/photos/presign`,
+    { contentType },
+  )
+}
+
+export async function uploadToStorage(uploadUrl: string, blob: Blob) {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': blob.type },
+    body: blob,
+  })
+  if (!response.ok) {
+    throw new Error(`Falha no upload: ${response.status}`)
+  }
+}
+
+export function confirmPhotoUpload(token: string, storageKey: string, guestName: string) {
+  return api.post<{ id: string }>(`/guest/events/${token}/photos`, {
+    storageKey,
+    guestName: guestName || undefined,
+  })
+}
+
 const GUEST_NAME_KEY = 'momentos.guest-name'
 
 export function saveGuestName(name: string) {
