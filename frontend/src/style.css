@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Cormorant Garamond', serif;
+  --font-sans: 'Inter', sans-serif;
+
+  --color-ivory-50: #fdfbf7;
+  --color-ivory-100: #faf6ee;
+  --color-ivory-200: #f3ecdf;
+
+  --color-champagne-300: #d9c39a;
+  --color-champagne-400: #c5a878;
+  --color-champagne-500: #b08d57;
+  --color-champagne-600: #97744a;
+
+  --color-blush-400: #d8a7b1;
+  --color-blush-500: #c48b9f;
+}

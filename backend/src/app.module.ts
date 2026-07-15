@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AppController } from './app.controller'
 import { buildDataSourceOptions } from './database/typeorm.config'
+import { AuthModule } from './modules/auth/auth.module'
+import { EventsModule } from './modules/events/events.module'
 import { UsersModule } from './modules/users/users.module'
 
 @Module({
@@ -12,6 +14,8 @@ import { UsersModule } from './modules/users/users.module'
       useFactory: () => buildDataSourceOptions(),
     }),
     UsersModule,
+    AuthModule,
+    EventsModule,
   ],
   controllers: [AppController],
 })

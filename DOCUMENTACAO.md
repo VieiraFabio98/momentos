@@ -39,7 +39,7 @@
 
 ### Backend (API)
 - **Node.js + NestJS** (TypeScript ponta a ponta com o front Vue).
-- **ORM:** Prisma ou TypeORM (Prisma recomendado — migrations e tipagem fortes).
+- **ORM:** TypeORM (migrations via CLI, `SnakeNamingStrategy` p/ camelCase↔snake_case).
 - **Validação:** `class-validator` + `class-transformer` (DTOs).
 
 ### Banco de Dados
@@ -69,7 +69,7 @@
 | Camada | Escolha |
 |---|---|
 | Frontend | Vue 3 + Vite (PWA) + Tailwind |
-| Backend | Node.js + NestJS + Prisma |
+| Backend | Node.js + NestJS + TypeORM |
 | Banco | PostgreSQL (dev via Docker) |
 | Storage | AWS S3 (presigned URL) |
 | Auth casal | JWT + Passport (bcrypt) |
@@ -88,68 +88,97 @@ guests       (id, event_id, nome?, session_token, created_at)   -- opcional
 
 ---
 
+## 3.1 Monetização (Planos)
+
+Cobrança **fixa por evento** (não por foto, não por convidado — foto ilimitada é o argumento de venda). Evento é criado grátis; paga-se para **ativar** o QR Code para os convidados.
+
+| Plano | Preço | O que inclui |
+|---|---|---|
+| **Degustação** | R$ 0 | 30 fotos, convidados ilimitados, álbum disponível por 7 dias |
+| **Momento** | R$ 29,90 | Fotos e convidados ilimitados, álbum por 6 meses, download ZIP |
+| **Memória** | R$ 350,00 | Tudo do Momento + retenção 2 anos + casal seleciona 30 fotos e **recebe álbum físico em casa no estilo polaroid** |
+
+Decisões:
+- Diferenciação por retenção/extras, nunca por quantidade de fotos.
+- Degustação serve de marketing: cada festa expõe o app a dezenas de futuros noivos.
+- Gateway sugerido: Mercado Pago (Pix) ou Stripe.
+- Custo de infra por evento (~4 GB S3) < R$ 1 — margem alta em todos os planos.
+- Plano Memória: fluxo pós-evento de seleção de 30 fotos + integração com fornecedor de impressão (a definir).
+
+---
+
 ## 4. Tasks de Desenvolvimento
 
-### Task 1 — Setup do Projeto
-- Subtask 1.1: Criar repositório e estrutura de pastas (frontend/backend).
-- Subtask 1.2: Configurar Vue 3 + Vite + `vite-plugin-pwa` + Tailwind.
-- Subtask 1.3: Configurar backend NestJS + Prisma + `docker-compose` (Postgres) + variáveis de ambiente.
-- Subtask 1.3.1: Criar bucket AWS S3 e credenciais IAM (dev/prod).
-- Subtask 1.4: Configurar CI/CD básico (GitHub Actions + deploy preview).
+> Marque `[x]` conforme concluir. Estado atualizado em 2026-07-08.
 
-### Task 2 — Autenticação do Casal
-- Subtask 2.1: Tela de cadastro (e-mail/senha).
-- Subtask 2.2: Tela de login + recuperação de senha.
-- Subtask 2.3: Login social Google (opcional).
-- Subtask 2.4: Proteção de rotas privadas (guard).
+### Task 1 — Setup do Projeto
+- [x] Subtask 1.1: Criar repositório e estrutura de pastas (frontend/backend).
+- [x] Subtask 1.2: Configurar Vue 3 + Vite + Tailwind (+ Pinia e Vue Router).
+- [ ] Subtask 1.2.1: Adicionar `vite-plugin-pwa` (manifest + service worker).
+- [x] Subtask 1.3: Configurar backend NestJS + TypeORM + `docker-compose` (Postgres) + variáveis de ambiente.
+- [x] Subtask 1.3.1: Migrations TypeORM configuradas (`migration:generate/run/revert`) + `SnakeNamingStrategy`.
+- [x] Subtask 1.3.2: Bucket S3 `momentos-bucket` (sa-east-1) — privado (public access block), CORS p/ localhost:5173, presigned URL testada. SDK `@aws-sdk/client-s3` instalado.
+- [ ] Subtask 1.4: Configurar CI/CD básico (GitHub Actions + deploy preview).
+
+### Task 2 — Usuários & Autenticação do Casal
+- [x] Subtask 2.1: Módulo Users no backend — CRUD completo (clean arch: domain/application/infra, repositórios read/write, hash bcrypt, DTOs validados, helpers HTTP).
+- [x] Subtask 2.2: Migration `users` aplicada no Postgres.
+- [x] Subtask 2.3: Tela de login/cadastro/recuperação (frontend, split 65/35 com Unsplash, responsiva, integrada ao `POST /users`).
+- [x] Subtask 2.4: Módulo Auth no backend — `POST /auth/login` (JWT via `@nestjs/jwt`) + `GET /auth/me` + `JwtAuthGuard`.
+- [x] Subtask 2.5: Recuperação de senha — `POST /auth/forgot-password` + `POST /auth/reset-password` (token sha256 c/ expiração, `IMailProvider` — dev: console; prod: trocar por SES/Resend) + tela `/reset-password`.
+- [x] Subtask 2.6: Login social Google — `POST /auth/google` (Google Identity Services, find-or-create, `password_hash` nullable). Pendente só criar `GOOGLE_CLIENT_ID` no Google Cloud Console e preencher nos `.env`.
+- [x] Subtask 2.7: Proteção de rotas privadas no frontend (guard no Vue Router + store Pinia + token em localStorage + dashboard).
 
 ### Task 3 — Gestão de Evento (Casal)
-- Subtask 3.1: Formulário de criação de evento (título, data, local).
-- Subtask 3.2: Geração do token público + QR Code do evento.
-- Subtask 3.3: Tela de download/impressão do QR Code (PDF/PNG).
-- Subtask 3.4: Configuração de janela de tempo (liberação/expiração).
-- Subtask 3.5: Ativar/desativar moderação de fotos.
+- [x] Subtask 3.0: Tela de planos (Degustação / Momento R$29,90 / Memória R$350) + escolha no fluxo de criação (frontend).
+- [ ] Subtask 3.0.1: Integração de pagamento (Mercado Pago/Stripe) para ativar evento.
+- [x] Subtask 3.1: Formulário de criação de evento — título, data, local (frontend, rascunho em store Pinia).
+- [x] Subtask 3.1.1: Módulo Events no backend (entity, migration, CRUD com ownership, `public_token` único gerado na criação, status `draft`) + fluxo frontend persistindo e dashboard listando eventos.
+- [x] Subtask 3.2: Geração do token público + QR Code do evento (`GET /events/:id/qrcode` → dataURL PNG 600px, link `/e/:token`).
+- [x] Subtask 3.3: Tela de detalhe do evento com QR — copiar link + baixar PNG (impressão em PDF fica p/ melhoria futura).
+- [ ] Subtask 3.4: Configuração de janela de tempo (liberação/expiração).
+- [ ] Subtask 3.5: Ativar/desativar moderação de fotos.
 
 ### Task 4 — Landing do Convidado (pós-scan)
-- Subtask 4.1: Rota pública que valida o token do evento.
-- Subtask 4.2: Tela explicativa da dinâmica ("câmera descartável").
-- Subtask 4.3: Captura opcional do primeiro nome (sem senha).
-- Subtask 4.4: Tratamento de token inválido/expirado.
+- [x] Subtask 4.1: Rota pública que valida o token — `GET /guest/events/:token` (sem auth, só dados públicos: título/data/local/status).
+- [x] Subtask 4.2: Tela explicativa da dinâmica em 3 passos ("câmera descartável"), mobile-first.
+- [x] Subtask 4.3: Captura opcional do primeiro nome (localStorage, sem conta) — enviado junto das fotos na Task 5.
+- [x] Subtask 4.4: Tratamento de token inválido (404 → "Convite não encontrado") e evento `expired` ("álbum fechado").
 
 ### Task 5 — Captura e Upload de Fotos (Convidado)
-- Subtask 5.1: Acesso à câmera via `getUserMedia` + fallback `input file`.
-- Subtask 5.2: Preview da foto antes de enviar.
-- Subtask 5.3: Compressão/resize no cliente antes do upload.
-- Subtask 5.4: Upload para storage + registro no banco.
-- Subtask 5.5: Feedback de sucesso e "tirar outra".
-- Subtask 5.6: Limite anti-spam por sessão (rate limit).
+- [ ] Subtask 5.1: Acesso à câmera via `getUserMedia` + fallback `input file`.
+- [ ] Subtask 5.2: Preview da foto antes de enviar.
+- [ ] Subtask 5.3: Compressão/resize no cliente antes do upload.
+- [ ] Subtask 5.4: Upload para storage + registro no banco.
+- [ ] Subtask 5.5: Feedback de sucesso e "tirar outra".
+- [ ] Subtask 5.6: Limite anti-spam por sessão (rate limit).
 
 ### Task 6 — Álbum do Casal
-- Subtask 6.1: Galeria de fotos do evento (grid + lazy load).
-- Subtask 6.2: Visualização em tela cheia (lightbox).
-- Subtask 6.3: Moderação: aprovar/rejeitar/excluir foto.
-- Subtask 6.4: Download individual e download do álbum completo (ZIP).
-- Subtask 6.5: Contadores (total de fotos, convidados participantes).
+- [ ] Subtask 6.1: Galeria de fotos do evento (grid + lazy load).
+- [ ] Subtask 6.2: Visualização em tela cheia (lightbox).
+- [ ] Subtask 6.3: Moderação: aprovar/rejeitar/excluir foto.
+- [ ] Subtask 6.4: Download individual e download do álbum completo (ZIP).
+- [ ] Subtask 6.5: Contadores (total de fotos, convidados participantes).
 
 ### Task 7 — Painel / Perfil do Casal
-- Subtask 7.1: Dashboard com lista de eventos.
-- Subtask 7.2: Edição de dados do evento.
-- Subtask 7.3: Compartilhamento de link do álbum (visualização pública opcional).
+- [ ] Subtask 7.1: Dashboard com lista de eventos.
+- [ ] Subtask 7.2: Edição de dados do evento.
+- [ ] Subtask 7.3: Compartilhamento de link do álbum (visualização pública opcional).
 
 ### Task 8 — Qualidade, Segurança e Deploy
-- Subtask 8.1: Regras de acesso (RLS/authorization) — convidado só envia, casal só lê o próprio evento.
-- Subtask 8.2: Validação de tipo/tamanho de arquivo no upload.
-- Subtask 8.3: Testes unitários e e2e dos fluxos críticos.
-- Subtask 8.4: Otimização PWA (offline básico, ícones, manifest).
-- Subtask 8.5: Deploy de produção + domínio + HTTPS.
-- Subtask 8.6: LGPD: consentimento de uso de imagem e política de privacidade.
+- [ ] Subtask 8.1: Regras de acesso (authorization) — convidado só envia, casal só lê o próprio evento.
+- [ ] Subtask 8.2: Validação de tipo/tamanho de arquivo no upload.
+- [ ] Subtask 8.3: Testes unitários e e2e dos fluxos críticos.
+- [ ] Subtask 8.4: Otimização PWA (offline básico, ícones, manifest).
+- [ ] Subtask 8.5: Deploy de produção + domínio + HTTPS.
+- [ ] Subtask 8.6: LGPD: consentimento de uso de imagem e política de privacidade.
 
 ### Task 9 — Extras (Backlog / Pós-MVP)
-- Subtask 9.1: Filtros/molduras estilo polaroid nas fotos.
-- Subtask 9.2: Slideshow ao vivo projetado na festa (telão).
-- Subtask 9.3: Mensagens/recados dos convidados junto da foto.
-- Subtask 9.4: Planos pagos (limite de fotos/eventos, retenção).
-- Subtask 9.5: Notificação ao casal quando álbum atinge X fotos.
+- [ ] Subtask 9.1: Filtros/molduras estilo polaroid nas fotos.
+- [ ] Subtask 9.2: Slideshow ao vivo projetado na festa (telão).
+- [ ] Subtask 9.3: Mensagens/recados dos convidados junto da foto.
+- [ ] Subtask 9.4: Fluxo do plano Memória — seleção de 30 fotos + pedido do álbum físico polaroid.
+- [ ] Subtask 9.5: Notificação ao casal quando álbum atinge X fotos.
 
 ---
 

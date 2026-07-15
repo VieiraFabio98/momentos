@@ -18,8 +18,8 @@ export class UserEntity implements IUser {
   @Column({ unique: true })
   email: string
 
-  @Column()
-  passwordHash: string
+  @Column({ type: 'varchar', nullable: true })
+  passwordHash: string | null
 
   @CreateDateColumn()
   createdAt: Date

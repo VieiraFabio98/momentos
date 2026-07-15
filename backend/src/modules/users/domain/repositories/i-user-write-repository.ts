@@ -5,7 +5,7 @@ export const USER_WRITE_REPOSITORY = Symbol('USER_WRITE_REPOSITORY')
 export interface ICreateUserData {
   name: string
   email: string
-  passwordHash: string
+  passwordHash: string | null
 }
 
 export interface IUpdateUserData {

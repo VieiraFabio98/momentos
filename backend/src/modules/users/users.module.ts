@@ -29,6 +29,6 @@ import { TypeormUserRepository } from './infra/repositories/typeorm-user.reposit
     UpdateUserUseCase,
     DeleteUserUseCase,
   ],
-  exports: [USER_REPOSITORY, USER_READ_REPOSITORY, USER_WRITE_REPOSITORY],
+  exports: [USER_REPOSITORY, USER_READ_REPOSITORY, USER_WRITE_REPOSITORY, HASH_PROVIDER],
 })
 export class UsersModule {}

@@ -1,4 +1,4 @@
-import { ForbiddenError, ServerError, UnauthorizedError, NotFoundError, SendMailError, ConflictError } from '../errors/http'
+import { BadRequest, ForbiddenError, ServerError, UnauthorizedError, NotFoundError, SendMailError, ConflictError } from '../errors/http'
 
 export type HttpResponse<T = any> = {
   statusCode: number
@@ -27,7 +27,7 @@ export const found = <T = any>(data: T): HttpResponse<T> => ({
 
 export const badRequest = (message:  string = 'Bad Request'): HttpResponse<Error> => ({
   statusCode: 400,
-  data: (new NotFoundError(message)).error
+  data: (new BadRequest(message)).error
 })
 
 export const unauthorized = (): HttpResponse<Error> => ({
