@@ -61,9 +61,20 @@
 
 ### Infra / Deploy
 - **Dev:** `docker-compose` (Postgres + backend NestJS). Frontend via `vite dev`.
-- **Frontend:** Vercel, Netlify ou Cloudflare Pages.
-- **Backend:** Railway, Render, Fly.io ou ECS/EC2 (AWS).
+- **Produção (free tier):** Vercel (frontend) + Render (backend) + Neon (Postgres) + AWS S3 (fotos; migrar p/ Cloudflare R2 quando o free tier AWS vencer — API compatível, troca só o endpoint no `S3StorageProvider`).
 - **CI/CD:** GitHub Actions.
+
+#### Deploy passo a passo (free tier)
+1. **Neon:** criar projeto → copiar connection string.
+2. **Render (Web Service):**
+   - Root dir `backend`, build `npm install && npm run build`, start `npm run start:prod`.
+   - Envs: `DATABASE_URL` (Neon), `DATABASE_SSL=true`, `JWT_SECRET` (forte), `FRONTEND_URL` (URL da Vercel), `GOOGLE_CLIENT_ID`, `AWS_*`, `S3_BUCKET_NAME`, `PORT` (Render injeta).
+   - Migrations: rodar `npm run migration:run:prod` (pre-deploy command ou shell).
+3. **Vercel:** root dir `frontend`, env de build `VITE_API_URL` (URL do Render) + `VITE_GOOGLE_CLIENT_ID` + `VITE_UNSPLASH_ACCESS_KEY`.
+4. **Bucket S3:** adicionar domínio da Vercel no CORS.
+5. **Google Cloud Console:** adicionar origem da Vercel no OAuth.
+6. **Cold start Render free:** dorme após 15 min (~50s pra acordar). Mitigar com ping do UptimeRobot ou plano pago.
+7. **E-mail:** trocar `ConsoleMailProvider` por Resend/Brevo (grátis) antes de divulgar — recuperação de senha depende disso.
 
 ### Stack definida (resumo)
 | Camada | Escolha |
@@ -154,11 +165,11 @@ Decisões:
 - [ ] Subtask 5.6: Rate limit por sessão (limite de 30 fotos do plano Degustação já implementado no presign; throttle por IP/sessão fica p/ Task 8).
 
 ### Task 6 — Álbum do Casal
-- [ ] Subtask 6.1: Galeria de fotos do evento (grid + lazy load).
-- [ ] Subtask 6.2: Visualização em tela cheia (lightbox).
+- [x] Subtask 6.1: Galeria de fotos no detalhe do evento — `GET /events/:id/photos` (ownership, presigned GET por foto), grid responsivo + lazy load + nome do convidado.
+- [x] Subtask 6.2: Visualização em tela cheia (lightbox com anterior/próxima e crédito do convidado).
 - [ ] Subtask 6.3: Moderação: aprovar/rejeitar/excluir foto.
 - [ ] Subtask 6.4: Download individual e download do álbum completo (ZIP).
-- [ ] Subtask 6.5: Contadores (total de fotos, convidados participantes).
+- [x] Subtask 6.5: Contadores (total de momentos + convidados participantes distintos).
 
 ### Task 7 — Painel / Perfil do Casal
 - [ ] Subtask 7.1: Dashboard com lista de eventos.

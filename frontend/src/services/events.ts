@@ -34,3 +34,20 @@ export function getEvent(id: string) {
 export function getEventQrCode(id: string) {
   return api.get<{ guestLink: string; qrCode: string }>(`/events/${id}/qrcode`)
 }
+
+export interface IEventPhoto {
+  id: string
+  url: string
+  guestName: string | null
+  createdAt: string
+}
+
+export interface IEventAlbum {
+  total: number
+  participants: number
+  photos: IEventPhoto[]
+}
+
+export function listEventPhotos(id: string) {
+  return api.get<IEventAlbum>(`/events/${id}/photos`)
+}

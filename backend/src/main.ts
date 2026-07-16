@@ -7,7 +7,9 @@ import { HttpResponseInterceptor } from './shared/interceptors/http-response.int
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
 
-  app.enableCors()
+  app.enableCors({
+    origin: process.env.FRONTEND_URL ?? true,
+  })
   app.useGlobalFilters(new AppErrorFilter())
   app.useGlobalInterceptors(new HttpResponseInterceptor())
   app.useGlobalPipes(

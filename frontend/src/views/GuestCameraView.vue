@@ -29,6 +29,9 @@ let stream: MediaStream | null = null
 const MAX_DIMENSION = 1920
 const JPEG_QUALITY = 0.8
 
+// FLAG: moldura polaroid nas fotos. Não gostou? `false` aqui desliga tudo.
+const POLAROID_FRAME_ENABLED = true
+
 const facingMode = ref<'environment' | 'user'>('environment')
 const flipping = ref(false)
 
@@ -70,15 +73,40 @@ async function flipCamera() {
   }
 }
 
+function applyPolaroidFrame(photo: HTMLCanvasElement): HTMLCanvasElement {
+  const border = Math.round(Math.max(photo.width, photo.height) * 0.045)
+  const bottomBorder = border * 4
+
+  const framed = document.createElement('canvas')
+  framed.width = photo.width + border * 2
+  framed.height = photo.height + border + bottomBorder
+
+  const ctx = framed.getContext('2d')!
+  ctx.fillStyle = '#fdfcf7'
+  ctx.fillRect(0, 0, framed.width, framed.height)
+
+  ctx.save()
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.15)'
+  ctx.shadowBlur = border * 0.4
+  ctx.drawImage(photo, border, border)
+  ctx.restore()
+
+  return framed
+}
+
 function compressToJpeg(source: HTMLVideoElement | HTMLImageElement): Promise<Blob> {
   const width = source instanceof HTMLVideoElement ? source.videoWidth : source.naturalWidth
   const height = source instanceof HTMLVideoElement ? source.videoHeight : source.naturalHeight
 
   const scale = Math.min(1, MAX_DIMENSION / Math.max(width, height))
-  const canvas = document.createElement('canvas')
+  let canvas = document.createElement('canvas')
   canvas.width = Math.round(width * scale)
   canvas.height = Math.round(height * scale)
   canvas.getContext('2d')!.drawImage(source, 0, 0, canvas.width, canvas.height)
+
+  if (POLAROID_FRAME_ENABLED) {
+    canvas = applyPolaroidFrame(canvas)
+  }
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
