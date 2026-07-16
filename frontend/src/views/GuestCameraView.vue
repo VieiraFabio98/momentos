@@ -29,10 +29,17 @@ let stream: MediaStream | null = null
 const MAX_DIMENSION = 1920
 const JPEG_QUALITY = 0.8
 
+const facingMode = ref<'environment' | 'user'>('environment')
+const flipping = ref(false)
+
 async function startCamera() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      video: {
+        facingMode: facingMode.value,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
       audio: false,
     })
     if (videoRef.value) {
@@ -48,6 +55,19 @@ async function startCamera() {
 function stopCamera() {
   stream?.getTracks().forEach((track) => track.stop())
   stream = null
+}
+
+async function flipCamera() {
+  if (flipping.value) return
+  flipping.value = true
+
+  stopCamera()
+  facingMode.value = facingMode.value === 'environment' ? 'user' : 'environment'
+  try {
+    await startCamera()
+  } finally {
+    flipping.value = false
+  }
 }
 
 function compressToJpeg(source: HTMLVideoElement | HTMLImageElement): Promise<Blob> {
@@ -145,6 +165,7 @@ onBeforeUnmount(stopCamera)
       playsinline
       muted
       class="min-h-dvh w-full object-cover"
+      :class="{ '-scale-x-100': facingMode === 'user' }"
     />
 
     <!-- preview da foto capturada (overlay) -->
@@ -206,10 +227,10 @@ onBeforeUnmount(stopCamera)
       Abrindo câmera…
     </p>
 
-    <!-- disparador -->
+    <!-- disparador + flip -->
     <footer
       v-if="cameraReady && !capturedUrl"
-      class="absolute inset-x-0 bottom-0 z-10 flex justify-center bg-linear-to-t from-black/70 to-transparent p-6 pb-10"
+      class="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center bg-linear-to-t from-black/70 to-transparent p-6 pb-10"
     >
       <button
         type="button"
@@ -218,6 +239,31 @@ onBeforeUnmount(stopCamera)
         @click="capture"
       >
         <span class="block h-full w-full rounded-full bg-white" />
+      </button>
+
+      <button
+        type="button"
+        aria-label="Virar câmera"
+        :disabled="flipping"
+        class="absolute right-8 flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90 disabled:opacity-50"
+        @click="flipCamera"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-6 w-6"
+        >
+          <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
+          <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5" />
+          <circle cx="12" cy="12" r="3" />
+          <path d="m18 22-3-3 3-3" />
+          <path d="m6 2 3 3-3 3" />
+        </svg>
       </button>
     </footer>
   </main>
