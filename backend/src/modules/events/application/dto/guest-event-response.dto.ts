@@ -4,7 +4,6 @@ import { EventWindowState, getEventWindowState } from '../../domain/services/eve
 export class GuestEventResponseDto {
   title: string
   eventDate: string
-  location: string
   status: EventStatus
   windowState: EventWindowState
   opensAt: Date | null
@@ -13,7 +12,6 @@ export class GuestEventResponseDto {
     const dto = new GuestEventResponseDto()
     dto.title = event.title
     dto.eventDate = event.eventDate
-    dto.location = event.location
     dto.status = event.status
     dto.windowState = getEventWindowState(event)
     dto.opensAt = event.opensAt

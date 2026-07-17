@@ -6,7 +6,6 @@ export interface ICreateEventData {
   userId: string
   title: string
   eventDate: string
-  location: string
   publicToken: string
   plan: EventPlan
   opensAt?: Date | null
@@ -16,7 +15,6 @@ export interface ICreateEventData {
 export interface IUpdateEventData {
   title?: string
   eventDate?: string
-  location?: string
   plan?: EventPlan
   status?: EventStatus
   opensAt?: Date | null

@@ -105,14 +105,13 @@ async function handleDownloadAlbum() {
 const editing = ref(false)
 const savingEdit = ref(false)
 const editError = ref('')
-const editForm = ref({ title: '', eventDate: '', location: '' })
+const editForm = ref({ title: '', eventDate: '' })
 
 function openEdit() {
   if (!event.value) return
   editForm.value = {
     title: event.value.title,
     eventDate: event.value.eventDate,
-    location: event.value.location,
   }
   editError.value = ''
   editing.value = true
@@ -170,7 +169,7 @@ onMounted(async () => {
 
       <template v-else-if="event">
 
-        <div class="mt-8 text-left transition-all hover:scale-103">
+        <div class="mt-2 text-left transition-all hover:scale-103">
           <button
             type="button"
             class="text-sm text-stone-500 transition hover:text-champagne-600"
@@ -183,7 +182,7 @@ onMounted(async () => {
         <header class="mb-10 text-center">
           <h2 class="font-display text-4xl font-medium text-stone-800">{{ event.title }}</h2>
           <p class="mt-3 text-sm font-light text-stone-500">
-            {{ formatDate(event.eventDate) }} · {{ event.location }}
+            {{ formatDate(event.eventDate) }}
           </p>
           <button
             type="button"
@@ -462,21 +461,6 @@ onMounted(async () => {
                 id="edit-date"
                 v-model="editForm.eventDate"
                 type="date"
-                required
-                class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
-              />
-            </div>
-            <div>
-              <label
-                for="edit-location"
-                class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
-              >
-                Local
-              </label>
-              <input
-                id="edit-location"
-                v-model="editForm.location"
-                type="text"
                 required
                 class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
               />

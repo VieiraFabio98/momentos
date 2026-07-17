@@ -9,10 +9,6 @@ export class CreateEventDto {
   @IsDateString()
   eventDate: string
 
-  @IsString()
-  @IsNotEmpty()
-  location: string
-
   @IsIn(['degustacao', 'momento', 'memoria'])
   plan: EventPlan
 

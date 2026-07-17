@@ -127,10 +127,6 @@ onMounted(async () => {
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-champagne-500">✦</span>
-                {{ event.location }}
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-champagne-500">✦</span>
                 Plano {{ planLabels[event.plan] ?? event.plan }}
               </div>
             </dl>

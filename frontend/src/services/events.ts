@@ -5,7 +5,6 @@ export interface IEventResponse {
   id: string
   title: string
   eventDate: string
-  location: string
   publicToken: string
   plan: PlanId
   status: 'draft' | 'active' | 'expired'
@@ -18,7 +17,6 @@ export interface IEventResponse {
 export function createEvent(data: {
   title: string
   eventDate: string
-  location: string
   plan: PlanId
   opensAt?: string
   expiresAt?: string
@@ -39,7 +37,6 @@ export function updateEvent(
   data: Partial<{
     title: string
     eventDate: string
-    location: string
     plan: PlanId
     opensAt: string | null
     expiresAt: string | null

@@ -50,7 +50,7 @@ const loadingLabel = computed(() => {
 const title = computed(() => {
   if (mode.value === 'register') return 'Criar conta'
   if (mode.value === 'forgot') return 'Recuperar senha'
-  return 'Bem-vindo de volta'
+  return 'Bem-vindo'
 })
 
 const subtitle = computed(() => {

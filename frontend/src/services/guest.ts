@@ -3,7 +3,6 @@ import { api } from './api'
 export interface IGuestEvent {
   title: string
   eventDate: string
-  location: string
   status: 'draft' | 'active' | 'expired'
   windowState: 'upcoming' | 'open' | 'closed'
   opensAt: string | null

@@ -85,23 +85,6 @@ function handleSubmit() {
           </p>
         </div>
 
-        <div>
-          <label
-            for="location"
-            class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
-          >
-            Local
-          </label>
-          <input
-            id="location"
-            v-model="draft.location"
-            type="text"
-            required
-            placeholder="Espaço Jardim das Flores, São Paulo"
-            class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder-stone-300 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
-          />
-        </div>
-
         <div class="flex gap-3 pt-4">
           <button
             type="button"

@@ -83,7 +83,6 @@ async function handleContinue() {
     await createEvent({
       title: draft.title,
       eventDate: draft.date,
-      location: draft.location,
       plan: selected.value,
       ...buildWindow(),
     })

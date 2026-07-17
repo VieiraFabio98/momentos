@@ -16,7 +16,7 @@ const guestName = ref(getGuestName())
 const steps = [
   {
     number: '1',
-    html: 'Seu celular vira uma <strong>câmera instantânea</strong> — sem instalar nada, sem criar conta',
+    html: 'Seu celular vira uma <strong>câmera instantânea</strong>, sem instalar nada, sem criar conta',
   },
   {
     number: '2',
@@ -113,12 +113,12 @@ onMounted(async () => {
       <div class="mx-auto mt-4 mb-8 h-px w-16 bg-champagne-400" />
 
       <p class="text-xs font-medium uppercase tracking-widest text-champagne-600">
-        Você foi convidado
+        Você foi convidado para participar desse grande momento!
       </p>
-      <h2 class="mt-2 font-display text-3xl font-medium text-stone-800">{{ event.title }}</h2>
-      <p class="mt-2 text-sm font-light text-stone-500">
-        {{ formatDate(event.eventDate) }} · {{ event.location }}
-      </p>
+      <!-- <h2 class="mt-2 font-display text-3xl font-medium text-stone-800">{{ event.title }}</h2> -->
+      <!-- <p class="mt-2 text-sm font-light text-stone-500">
+        {{ formatDate(event.eventDate) }}
+      </p> -->
 
       <Transition
         mode="out-in"

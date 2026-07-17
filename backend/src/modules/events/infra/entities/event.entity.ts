@@ -29,9 +29,6 @@ export class EventEntity implements IEvent {
   @Column({ type: 'date' })
   eventDate: string
 
-  @Column()
-  location: string
-
   @Index({ unique: true })
   @Column()
   publicToken: string

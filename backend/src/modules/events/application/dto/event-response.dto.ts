@@ -4,7 +4,6 @@ export class EventResponseDto {
   id: string
   title: string
   eventDate: string
-  location: string
   publicToken: string
   plan: EventPlan
   status: EventStatus
@@ -18,7 +17,6 @@ export class EventResponseDto {
     dto.id = event.id
     dto.title = event.title
     dto.eventDate = event.eventDate
-    dto.location = event.location
     dto.publicToken = event.publicToken
     dto.plan = event.plan
     dto.status = event.status

@@ -12,11 +12,6 @@ export class UpdateEventDto {
   eventDate?: string
 
   @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  location?: string
-
-  @IsOptional()
   @IsIn(['degustacao', 'momento', 'memoria'])
   plan?: EventPlan
 

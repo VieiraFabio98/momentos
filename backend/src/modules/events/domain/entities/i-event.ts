@@ -6,7 +6,6 @@ export interface IEvent {
   userId: string
   title: string
   eventDate: string
-  location: string
   publicToken: string
   plan: EventPlan
   status: EventStatus
