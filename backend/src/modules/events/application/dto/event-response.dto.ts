@@ -8,6 +8,7 @@ export class EventResponseDto {
   publicToken: string
   plan: EventPlan
   status: EventStatus
+  opensAt: Date | null
   expiresAt: Date | null
   createdAt: Date
   updatedAt: Date
@@ -21,6 +22,7 @@ export class EventResponseDto {
     dto.publicToken = event.publicToken
     dto.plan = event.plan
     dto.status = event.status
+    dto.opensAt = event.opensAt
     dto.expiresAt = event.expiresAt
     dto.createdAt = event.createdAt
     dto.updatedAt = event.updatedAt

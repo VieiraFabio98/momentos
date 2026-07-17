@@ -13,9 +13,40 @@ const invalid = ref(false)
 const event = ref<IGuestEvent | null>(null)
 const guestName = ref(getGuestName())
 
+const steps = [
+  {
+    number: '1',
+    html: 'Seu celular vira uma <strong>câmera instantânea</strong> — sem instalar nada, sem criar conta',
+  },
+  {
+    number: '2',
+    html: 'Fotografe a festa <strong>do seu jeito</strong>: os abraços, a pista, os detalhes que só você viu',
+  },
+  {
+    number: '3',
+    html: 'Depois da festa, os noivos recebem <strong>todos os momentos</strong> num álbum coletivo',
+  },
+]
+
+const step = ref(0)
+
+function nextStep() {
+  step.value += 1
+}
+
 function formatDate(isoDate: string) {
   const [year, month, day] = isoDate.split('-')
   return `${day}/${month}/${year}`
+}
+
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function handleStart() {
@@ -51,12 +82,28 @@ onMounted(async () => {
     </div>
 
     <!-- evento encerrado -->
-    <div v-else-if="event.status === 'expired'" class="max-w-md text-center">
+    <div v-else-if="event.windowState === 'closed'" class="max-w-md text-center">
       <h1 class="font-display text-4xl font-semibold text-stone-800">Momentos</h1>
       <div class="mx-auto mt-4 mb-8 h-px w-16 bg-champagne-400" />
       <h2 class="font-display text-2xl font-medium text-stone-800">Este álbum já foi fechado</h2>
       <p class="mt-3 text-sm font-light text-stone-500">
         O período de fotos de “{{ event.title }}” terminou. Obrigado por fazer parte desse dia!
+      </p>
+    </div>
+
+    <!-- álbum ainda não liberado -->
+    <div v-else-if="event.windowState === 'upcoming'" class="max-w-md text-center">
+      <h1 class="font-display text-4xl font-semibold text-stone-800">Momentos</h1>
+      <div class="mx-auto mt-4 mb-8 h-px w-16 bg-champagne-400" />
+      <h2 class="font-display text-2xl font-medium text-stone-800">Quase lá! 💫</h2>
+      <p class="mt-3 text-sm font-light text-stone-500">
+        O álbum de “{{ event.title }}” ainda não está aberto para fotos.
+        <template v-if="event.opensAt">
+          A festa começa a ser fotografada em
+          <strong class="font-medium text-stone-700">{{ formatDateTime(event.opensAt) }}</strong> —
+          volte aqui nesse horário!
+        </template>
+        <template v-else> Volte um pouco mais tarde!</template>
       </p>
     </div>
 
@@ -73,50 +120,61 @@ onMounted(async () => {
         {{ formatDate(event.eventDate) }} · {{ event.location }}
       </p>
 
-      <div class="mt-10 space-y-4 text-left">
-        <div class="flex items-start gap-4 rounded-2xl border border-stone-200 bg-white p-5">
-          <span class="font-display text-2xl text-champagne-500">1</span>
-          <p class="text-sm text-stone-600">
-            Seu celular vira uma <strong>câmera descartável</strong> — sem instalar nada, sem criar
-            conta
-          </p>
-        </div>
-        <div class="flex items-start gap-4 rounded-2xl border border-stone-200 bg-white p-5">
-          <span class="font-display text-2xl text-champagne-500">2</span>
-          <p class="text-sm text-stone-600">
-            Fotografe a festa <strong>do seu jeito</strong>: os abraços, a pista, os detalhes que
-            só você viu
-          </p>
-        </div>
-        <div class="flex items-start gap-4 rounded-2xl border border-stone-200 bg-white p-5">
-          <span class="font-display text-2xl text-champagne-500">3</span>
-          <p class="text-sm text-stone-600">
-            Depois da festa, os noivos recebem <strong>todos os momentos</strong> num álbum
-            coletivo
-          </p>
-        </div>
-      </div>
-
-      <div class="mt-10">
-        <label for="guest-name" class="mb-1.5 block text-left text-xs font-medium tracking-wide text-stone-600">
-          Seu primeiro nome <span class="font-light text-stone-400">(opcional)</span>
-        </label>
-        <input
-          id="guest-name"
-          v-model="guestName"
-          type="text"
-          placeholder="Como os noivos te conhecem?"
-          class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder-stone-300 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
-        />
-      </div>
-
-      <button
-        type="button"
-        class="mt-6 w-full rounded-lg bg-champagne-500 py-3.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
-        @click="handleStart"
+      <Transition
+        mode="out-in"
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-2"
+        leave-active-class="transition-all duration-300 ease-in"
+        leave-to-class="opacity-0 -translate-y-2"
       >
-        Começar a fotografar 📸
-      </button>
+        <!-- passos 1 a 3 -->
+        <div v-if="step < steps.length" :key="step" class="mt-10">
+          <div class="flex items-start gap-4 rounded-2xl border border-stone-200 bg-white p-5 text-left">
+            <span class="font-display text-2xl text-champagne-500">{{ steps[step].number }}</span>
+            <!-- eslint-disable-next-line vue/no-v-html -->
+            <p class="text-sm text-stone-600" v-html="steps[step].html" />
+          </div>
+
+          <div class="mt-6 flex items-center justify-center gap-2">
+            <span
+              v-for="(item, index) in steps"
+              :key="item.number"
+              class="h-1.5 rounded-full transition-all duration-300"
+              :class="index === step ? 'w-6 bg-champagne-500' : 'w-1.5 bg-stone-200'"
+            />
+          </div>
+
+          <button
+            type="button"
+            class="mt-6 w-full rounded-lg bg-champagne-500 py-3.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
+            @click="nextStep"
+          >
+            Prosseguir
+          </button>
+        </div>
+
+        <!-- passo final: nome + começar -->
+        <div v-else key="final" class="mt-10">
+          <label for="guest-name" class="mb-1.5 block text-left text-xs font-medium tracking-wide text-stone-600">
+            Seu primeiro nome <span class="font-light text-stone-400">(opcional)</span>
+          </label>
+          <input
+            id="guest-name"
+            v-model="guestName"
+            type="text"
+            placeholder="Como os noivos te conhecem?"
+            class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder-stone-300 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
+          />
+
+          <button
+            type="button"
+            class="mt-6 w-full rounded-lg bg-champagne-500 py-3.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
+            @click="handleStart"
+          >
+            Começar a fotografar 📸
+          </button>
+        </div>
+      </Transition>
     </div>
   </main>
 </template>

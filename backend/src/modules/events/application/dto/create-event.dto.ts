@@ -1,4 +1,4 @@
-import { IsDateString, IsIn, IsNotEmpty, IsString } from 'class-validator'
+import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import { EventPlan } from '../../domain/entities/i-event'
 
 export class CreateEventDto {
@@ -15,4 +15,12 @@ export class CreateEventDto {
 
   @IsIn(['degustacao', 'momento', 'memoria'])
   plan: EventPlan
+
+  @IsOptional()
+  @IsDateString()
+  opensAt?: string
+
+  @IsOptional()
+  @IsDateString()
+  expiresAt?: string
 }

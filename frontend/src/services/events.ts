@@ -9,6 +9,7 @@ export interface IEventResponse {
   publicToken: string
   plan: PlanId
   status: 'draft' | 'active' | 'expired'
+  opensAt: string | null
   expiresAt: string | null
   createdAt: string
   updatedAt: string
@@ -19,6 +20,8 @@ export function createEvent(data: {
   eventDate: string
   location: string
   plan: PlanId
+  opensAt?: string
+  expiresAt?: string
 }) {
   return api.post<IEventResponse>('/events', data)
 }
@@ -31,6 +34,24 @@ export function getEvent(id: string) {
   return api.get<IEventResponse>(`/events/${id}`)
 }
 
+export function updateEvent(
+  id: string,
+  data: Partial<{
+    title: string
+    eventDate: string
+    location: string
+    plan: PlanId
+    opensAt: string | null
+    expiresAt: string | null
+  }>,
+) {
+  return api.patch<IEventResponse>(`/events/${id}`, data)
+}
+
+export function deleteEvent(id: string) {
+  return api.delete(`/events/${id}`)
+}
+
 export function getEventQrCode(id: string) {
   return api.get<{ guestLink: string; qrCode: string }>(`/events/${id}/qrcode`)
 }
@@ -38,6 +59,7 @@ export function getEventQrCode(id: string) {
 export interface IEventPhoto {
   id: string
   url: string
+  downloadUrl: string
   guestName: string | null
   createdAt: string
 }
@@ -50,4 +72,14 @@ export interface IEventAlbum {
 
 export function listEventPhotos(id: string) {
   return api.get<IEventAlbum>(`/events/${id}/photos`)
+}
+
+export async function downloadEventAlbum(id: string, filename: string) {
+  const blob = await api.getBlob(`/events/${id}/photos/archive`)
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
 }

@@ -3,11 +3,14 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
+import AppLoader from '../components/AppLoader.vue'
 import { ApiError } from '../services/api'
 import {
+  downloadEventAlbum,
   getEvent,
   getEventQrCode,
   listEventPhotos,
+  updateEvent,
   type IEventAlbum,
   type IEventPhoto,
   type IEventResponse,
@@ -46,6 +49,90 @@ function formatDate(isoDate: string) {
   return `${day}/${month}/${year}`
 }
 
+// janela de envios
+const opensAtInput = ref('')
+const expiresAtInput = ref('')
+const savingWindow = ref(false)
+const windowSaved = ref(false)
+const windowError = ref('')
+
+function isoToLocalInput(iso: string | null): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+async function saveWindow() {
+  if (!event.value) return
+  savingWindow.value = true
+  windowError.value = ''
+  windowSaved.value = false
+  try {
+    event.value = await updateEvent(event.value.id, {
+      opensAt: opensAtInput.value ? new Date(opensAtInput.value).toISOString() : null,
+      expiresAt: expiresAtInput.value ? new Date(expiresAtInput.value).toISOString() : null,
+    })
+    windowSaved.value = true
+    setTimeout(() => (windowSaved.value = false), 2000)
+  } catch (error) {
+    windowError.value =
+      error instanceof ApiError ? error.message : 'Não foi possível salvar. Tente novamente.'
+  } finally {
+    savingWindow.value = false
+  }
+}
+
+// download do álbum completo
+const downloadingAlbum = ref(false)
+const downloadError = ref('')
+
+async function handleDownloadAlbum() {
+  if (!event.value) return
+  downloadingAlbum.value = true
+  downloadError.value = ''
+  try {
+    await downloadEventAlbum(event.value.id, `momentos-${event.value.title}.zip`)
+  } catch (error) {
+    downloadError.value =
+      error instanceof ApiError ? error.message : 'Não foi possível baixar o álbum'
+  } finally {
+    downloadingAlbum.value = false
+  }
+}
+
+// edição do evento
+const editing = ref(false)
+const savingEdit = ref(false)
+const editError = ref('')
+const editForm = ref({ title: '', eventDate: '', location: '' })
+
+function openEdit() {
+  if (!event.value) return
+  editForm.value = {
+    title: event.value.title,
+    eventDate: event.value.eventDate,
+    location: event.value.location,
+  }
+  editError.value = ''
+  editing.value = true
+}
+
+async function saveEdit() {
+  if (!event.value) return
+  savingEdit.value = true
+  editError.value = ''
+  try {
+    event.value = await updateEvent(event.value.id, { ...editForm.value })
+    editing.value = false
+  } catch (error) {
+    editError.value =
+      error instanceof ApiError ? error.message : 'Não foi possível salvar. Tente novamente.'
+  } finally {
+    savingEdit.value = false
+  }
+}
+
 async function copyLink() {
   await navigator.clipboard.writeText(guestLink.value)
   copied.value = true
@@ -56,6 +143,8 @@ onMounted(async () => {
   const id = String(route.params.id)
   try {
     event.value = await getEvent(id)
+    opensAtInput.value = isoToLocalInput(event.value.opensAt)
+    expiresAtInput.value = isoToLocalInput(event.value.expiresAt)
     const [qr, albumData] = await Promise.all([getEventQrCode(id), listEventPhotos(id)])
     qrCode.value = qr.qrCode
     guestLink.value = qr.guestLink
@@ -77,20 +166,52 @@ onMounted(async () => {
     <AppHeader />
 
     <section class="mx-auto max-w-3xl px-6 py-16">
-      <p v-if="loading" class="text-center text-stone-400">Carregando…</p>
+      <AppLoader v-if="loading" label="Carregando evento…" />
 
       <template v-else-if="event">
+
+        <div class="mt-8 text-left transition-all hover:scale-103">
+          <button
+            type="button"
+            class="text-sm text-stone-500 transition hover:text-champagne-600"
+            @click="router.push({ name: 'dashboard' })"
+          >
+            ← Voltar para meus eventos
+          </button>
+        </div>
+
         <header class="mb-10 text-center">
           <h2 class="font-display text-4xl font-medium text-stone-800">{{ event.title }}</h2>
           <p class="mt-3 text-sm font-light text-stone-500">
             {{ formatDate(event.eventDate) }} · {{ event.location }}
           </p>
+          <button
+            type="button"
+            class="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-champagne-600 transition hover:text-champagne-500"
+            @click="openEdit"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="h-3.5 w-3.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"
+              />
+            </svg>
+            Editar evento
+          </button>
         </header>
 
         <div class="rounded-2xl border border-stone-200 bg-white p-8 text-center">
-          <h3 class="font-display text-2xl font-medium text-stone-800">QR Code dos convidados</h3>
+          <h3 class="font-display text-2xl font-medium text-stone-800">QR Code</h3>
           <p class="mx-auto mt-2 max-w-md text-sm font-light text-stone-500">
-            Imprima e espalhe pelas mesas — cada convidado que escanear vira um fotógrafo do seu
+            Imprima e espalhe pelas mesas, cada convidado vira um fotógrafo do seu
             grande dia
           </p>
 
@@ -121,18 +242,83 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- janela de envios -->
+        <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
+          <h3 class="font-display text-2xl font-medium text-stone-800">Janela de envios</h3>
+          <p class="mt-2 text-sm font-light text-stone-500">
+            Os convidados só conseguem enviar fotos entre o horário inicial e final definidos aqui.
+          </p>
+
+          <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label
+                for="opens-at"
+                class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
+              >
+                Início dos envios
+              </label>
+              <input
+                id="opens-at"
+                v-model="opensAtInput"
+                type="datetime-local"
+                class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
+              />
+            </div>
+            <div>
+              <label
+                for="expires-at"
+                class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
+              >
+                Fim dos envios
+              </label>
+              <input
+                id="expires-at"
+                v-model="expiresAtInput"
+                type="datetime-local"
+                class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
+              />
+            </div>
+          </div>
+
+          <p v-if="windowError" class="mt-4 text-sm text-red-500">{{ windowError }}</p>
+
+          <button
+            type="button"
+            :disabled="savingWindow"
+            class="mt-6 rounded-lg bg-champagne-500 px-6 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600 disabled:opacity-60"
+            @click="saveWindow"
+          >
+            {{ savingWindow ? 'Salvando…' : windowSaved ? 'Salvo!' : 'Salvar janela' }}
+          </button>
+        </div>
+
         <!-- álbum -->
         <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
-          <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
             <h3 class="font-display text-2xl font-medium text-stone-800">Álbum</h3>
-            <p v-if="album" class="text-xs text-stone-400">
-              {{ album.total }} {{ album.total === 1 ? 'momento' : 'momentos' }}
-              <template v-if="album.participants > 0">
-                · {{ album.participants }}
-                {{ album.participants === 1 ? 'convidado' : 'convidados' }}
-              </template>
-            </p>
+            <div class="flex items-center gap-4">
+              <p v-if="album" class="text-xs text-stone-400">
+                {{ album.total }} {{ album.total === 1 ? 'momento' : 'momentos' }}
+                <template v-if="album.participants > 0">
+                  · {{ album.participants }}
+                  {{ album.participants === 1 ? 'convidado' : 'convidados' }}
+                </template>
+              </p>
+              <button
+                v-if="album && album.total > 0"
+                type="button"
+                :disabled="downloadingAlbum"
+                class="rounded-lg border border-champagne-400 px-4 py-2 text-xs font-medium text-champagne-600 transition hover:bg-champagne-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                @click="handleDownloadAlbum"
+              >
+                {{ downloadingAlbum ? 'Preparando…' : 'Baixar álbum (.zip)' }}
+              </button>
+            </div>
           </div>
+
+          <p v-if="downloadError" class="mt-3 text-right text-xs text-red-500">
+            {{ downloadError }}
+          </p>
 
           <p
             v-if="!album || album.total === 0"
@@ -163,17 +349,7 @@ onMounted(async () => {
               </span>
             </button>
           </div>
-        </div>
-
-        <div class="mt-8 text-center">
-          <button
-            type="button"
-            class="text-sm text-stone-500 transition hover:text-champagne-600"
-            @click="router.push({ name: 'dashboard' })"
-          >
-            ← Voltar para meus eventos
-          </button>
-        </div>
+        </div> 
       </template>
     </section>
 
@@ -205,8 +381,28 @@ onMounted(async () => {
           alt="Foto ampliada"
           class="max-h-[85vh] max-w-full rounded-lg object-contain"
         />
-        <figcaption v-if="lightbox.guestName" class="mt-3 text-center text-sm text-white/70">
-          por {{ lightbox.guestName }}
+        <figcaption class="mt-3 flex items-center justify-center gap-4 text-sm text-white/70">
+          <span v-if="lightbox.guestName">por {{ lightbox.guestName }}</span>
+          <a
+            :href="lightbox.downloadUrl"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-4 py-1.5 text-xs text-white transition hover:bg-white/20"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="h-3.5 w-3.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+              />
+            </svg>
+            Baixar
+          </a>
         </figcaption>
       </figure>
       <button
@@ -218,6 +414,96 @@ onMounted(async () => {
         ›
       </button>
     </div>
+
+    <!-- edição do evento -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-200"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="editing"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/20 px-6 backdrop-blur-sm"
+        @click.self="editing = false"
+      >
+        <form
+          class="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl"
+          @submit.prevent="saveEdit"
+        >
+          <h3 class="text-center font-display text-2xl font-medium text-stone-800">
+            Editar evento
+          </h3>
+
+          <div class="mt-6 space-y-4">
+            <div>
+              <label
+                for="edit-title"
+                class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
+              >
+                Nome do evento
+              </label>
+              <input
+                id="edit-title"
+                v-model="editForm.title"
+                type="text"
+                required
+                class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
+              />
+            </div>
+            <div>
+              <label
+                for="edit-date"
+                class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
+              >
+                Data
+              </label>
+              <input
+                id="edit-date"
+                v-model="editForm.eventDate"
+                type="date"
+                required
+                class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
+              />
+            </div>
+            <div>
+              <label
+                for="edit-location"
+                class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
+              >
+                Local
+              </label>
+              <input
+                id="edit-location"
+                v-model="editForm.location"
+                type="text"
+                required
+                class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
+              />
+            </div>
+          </div>
+
+          <p v-if="editError" class="mt-4 text-sm text-red-500">{{ editError }}</p>
+
+          <div class="mt-8 flex gap-3">
+            <button
+              type="button"
+              class="flex-1 rounded-lg border border-stone-200 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+              @click="editing = false"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              :disabled="savingEdit"
+              class="flex-1 rounded-lg bg-champagne-500 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600 disabled:opacity-60"
+            >
+              {{ savingEdit ? 'Salvando…' : 'Salvar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Transition>
 
     <AppFooter />
   </main>

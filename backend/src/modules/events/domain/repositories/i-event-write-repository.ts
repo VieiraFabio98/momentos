@@ -9,6 +9,8 @@ export interface ICreateEventData {
   location: string
   publicToken: string
   plan: EventPlan
+  opensAt?: Date | null
+  expiresAt?: Date | null
 }
 
 export interface IUpdateEventData {
@@ -17,6 +19,7 @@ export interface IUpdateEventData {
   location?: string
   plan?: EventPlan
   status?: EventStatus
+  opensAt?: Date | null
   expiresAt?: Date | null
 }
 

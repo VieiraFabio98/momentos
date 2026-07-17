@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from '../auth/auth.module'
 import { EventsModule } from '../events/events.module'
 import { ConfirmPhotoUploadUseCase } from './application/use-cases/confirm-photo-upload.use-case'
+import { DownloadEventAlbumUseCase } from './application/use-cases/download-event-album.use-case'
 import { ListEventPhotosUseCase } from './application/use-cases/list-event-photos.use-case'
 import { RequestPhotoUploadUseCase } from './application/use-cases/request-photo-upload.use-case'
 import { STORAGE_PROVIDER } from './domain/providers/i-storage-provider'
@@ -27,6 +28,7 @@ import { TypeormPhotoRepository } from './infra/repositories/typeorm-photo.repos
     RequestPhotoUploadUseCase,
     ConfirmPhotoUploadUseCase,
     ListEventPhotosUseCase,
+    DownloadEventAlbumUseCase,
   ],
   exports: [PHOTO_REPOSITORY, PHOTO_READ_REPOSITORY, PHOTO_WRITE_REPOSITORY, STORAGE_PROVIDER],
 })

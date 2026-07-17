@@ -40,4 +40,18 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  patch: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+  delete: <T = void>(path: string) => request<T>(path, { method: 'DELETE' }),
+  async getBlob(path: string): Promise<Blob> {
+    const token = localStorage.getItem('momentos.token')
+    const response = await fetch(`${BASE_URL}${path}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({ message: response.statusText }))
+      throw new ApiError(response.status, body)
+    }
+    return response.blob()
+  },
 }

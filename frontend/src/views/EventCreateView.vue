@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
+import TimeSelect from '../components/TimeSelect.vue'
 import { useEventDraftStore } from '../stores/event-draft'
 
 const draft = useEventDraftStore()
@@ -54,6 +55,34 @@ function handleSubmit() {
             :min="today"
             class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
           />
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label
+              for="start-time"
+              class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
+            >
+              Começa às
+            </label>
+            <TimeSelect id="start-time" v-model="draft.startTime" required :disabled="!draft.date" />
+          </div>
+          <div>
+            <label
+              for="end-time"
+              class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
+            >
+              Termina às
+            </label>
+            <TimeSelect id="end-time" v-model="draft.endTime" required :disabled="!draft.date" />
+          </div>
+          <p class="-mt-2 text-xs font-light text-stone-400 sm:col-span-2">
+            <template v-if="!draft.date">Escolha a data primeiro para definir os horários.</template>
+            <template v-else>
+              Os convidados só conseguem enviar fotos nesse período. Se terminar depois da
+              meia-noite, consideramos o dia seguinte.
+            </template>
+          </p>
         </div>
 
         <div>

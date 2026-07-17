@@ -64,6 +64,16 @@ function choosePlan(id: PlanId) {
   draft.plan = id
 }
 
+function buildWindow(): { opensAt?: string; expiresAt?: string } {
+  if (!draft.date || !draft.startTime || !draft.endTime) return {}
+  const opens = new Date(`${draft.date}T${draft.startTime}`)
+  const expires = new Date(`${draft.date}T${draft.endTime}`)
+  if (expires <= opens) {
+    expires.setDate(expires.getDate() + 1)
+  }
+  return { opensAt: opens.toISOString(), expiresAt: expires.toISOString() }
+}
+
 async function handleContinue() {
   if (!selected.value) return
 
@@ -75,6 +85,7 @@ async function handleContinue() {
       eventDate: draft.date,
       location: draft.location,
       plan: selected.value,
+      ...buildWindow(),
     })
     draft.reset()
     router.push({ name: 'dashboard' })

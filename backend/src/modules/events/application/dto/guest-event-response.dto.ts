@@ -1,10 +1,13 @@
 import { EventStatus, IEvent } from '../../domain/entities/i-event'
+import { EventWindowState, getEventWindowState } from '../../domain/services/event-window'
 
 export class GuestEventResponseDto {
   title: string
   eventDate: string
   location: string
   status: EventStatus
+  windowState: EventWindowState
+  opensAt: Date | null
 
   static fromDomain(event: IEvent): GuestEventResponseDto {
     const dto = new GuestEventResponseDto()
@@ -12,6 +15,8 @@ export class GuestEventResponseDto {
     dto.eventDate = event.eventDate
     dto.location = event.location
     dto.status = event.status
+    dto.windowState = getEventWindowState(event)
+    dto.opensAt = event.opensAt
     return dto
   }
 }

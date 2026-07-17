@@ -6,6 +6,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { Readable } from 'node:stream'
 import { IStorageProvider } from '../../domain/providers/i-storage-provider'
 
 const UPLOAD_URL_TTL_SECONDS = 300
@@ -30,6 +31,25 @@ export class S3StorageProvider implements IStorageProvider {
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       { expiresIn: DOWNLOAD_URL_TTL_SECONDS },
     )
+  }
+
+  getAttachmentUrl(key: string, filename: string): Promise<string> {
+    return getSignedUrl(
+      this.client,
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ResponseContentDisposition: `attachment; filename="${filename}"`,
+      }),
+      { expiresIn: DOWNLOAD_URL_TTL_SECONDS },
+    )
+  }
+
+  async getObjectStream(key: string): Promise<Readable> {
+    const result = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    )
+    return result.Body as Readable
   }
 
   async exists(key: string): Promise<boolean> {

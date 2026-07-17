@@ -10,6 +10,11 @@ import {
   PHOTO_READ_REPOSITORY,
 } from '../../domain/repositories/i-photo-read-repository'
 
+export function photoFilename(storageKey: string, index: number): string {
+  const extension = storageKey.split('.').pop() ?? 'jpg'
+  return `momento-${String(index + 1).padStart(3, '0')}.${extension}`
+}
+
 @Injectable()
 export class ListEventPhotosUseCase {
   constructor(
@@ -28,12 +33,15 @@ export class ListEventPhotosUseCase {
     }
 
     const photos = await this.photoReadRepository.findAllByEventId(eventId)
-    console.log('eventId', eventId)
 
     const items = await Promise.all(
-      photos.map(async (photo) => ({
+      photos.map(async (photo, index) => ({
         id: photo.id,
         url: await this.storageProvider.getDownloadUrl(photo.storageKey),
+        downloadUrl: await this.storageProvider.getAttachmentUrl(
+          photo.storageKey,
+          photoFilename(photo.storageKey, index),
+        ),
         guestName: photo.guestName,
         createdAt: photo.createdAt,
       })),

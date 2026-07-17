@@ -2,7 +2,7 @@
 
 ## 1. Visão Geral
 
-**Momentos** é uma aplicação web que transforma os convidados de um casamento em fotógrafos espontâneos. Funciona como uma "câmera descartável / polaroid digital": durante a cerimônia e a festa, os convidados escaneiam um QR Code, tiram fotos direto do navegador e contribuem para um álbum coletivo do casal.
+**Momentos** é uma aplicação web que transforma os convidados de um casamento em fotógrafos espontâneos. Funciona como uma "câmera instantânea / polaroid digital": durante a cerimônia e a festa, os convidados escaneiam um QR Code, tiram fotos direto do navegador e contribuem para um álbum coletivo do casal.
 
 ### Proposta de valor
 - Captura de momentos genuínos, do ponto de vista dos convidados.
@@ -147,12 +147,12 @@ Decisões:
 - [x] Subtask 3.1.1: Módulo Events no backend (entity, migration, CRUD com ownership, `public_token` único gerado na criação, status `draft`) + fluxo frontend persistindo e dashboard listando eventos.
 - [x] Subtask 3.2: Geração do token público + QR Code do evento (`GET /events/:id/qrcode` → dataURL PNG 600px, link `/e/:token`).
 - [x] Subtask 3.3: Tela de detalhe do evento com QR — copiar link + baixar PNG (impressão em PDF fica p/ melhoria futura).
-- [ ] Subtask 3.4: Configuração de janela de tempo (liberação/expiração).
+- [x] Subtask 3.4: Configuração de janela de tempo — `opens_at`/`expires_at` no evento, definida na criação (horário início/fim, vira dia seguinte se fim ≤ início) e editável no detalhe (datetime-local); guest recebe `windowState` (`upcoming`/`open`/`closed`) e presign bloqueia fora da janela.
 - [ ] Subtask 3.5: Ativar/desativar moderação de fotos.
 
 ### Task 4 — Landing do Convidado (pós-scan)
 - [x] Subtask 4.1: Rota pública que valida o token — `GET /guest/events/:token` (sem auth, só dados públicos: título/data/local/status).
-- [x] Subtask 4.2: Tela explicativa da dinâmica em 3 passos ("câmera descartável"), mobile-first.
+- [x] Subtask 4.2: Tela explicativa da dinâmica em 3 passos ("câmera instantânea"), mobile-first.
 - [x] Subtask 4.3: Captura opcional do primeiro nome (localStorage, sem conta) — enviado junto das fotos na Task 5.
 - [x] Subtask 4.4: Tratamento de token inválido (404 → "Convite não encontrado") e evento `expired` ("álbum fechado").
 
@@ -168,12 +168,12 @@ Decisões:
 - [x] Subtask 6.1: Galeria de fotos no detalhe do evento — `GET /events/:id/photos` (ownership, presigned GET por foto), grid responsivo + lazy load + nome do convidado.
 - [x] Subtask 6.2: Visualização em tela cheia (lightbox com anterior/próxima e crédito do convidado).
 - [ ] Subtask 6.3: Moderação: aprovar/rejeitar/excluir foto.
-- [ ] Subtask 6.4: Download individual e download do álbum completo (ZIP).
+- [x] Subtask 6.4: Download individual (presigned GET c/ `Content-Disposition: attachment` no lightbox) e download do álbum completo — `GET /events/:id/photos/archive` streama ZIP (archiver, store) direto do S3.
 - [x] Subtask 6.5: Contadores (total de momentos + convidados participantes distintos).
 
 ### Task 7 — Painel / Perfil do Casal
 - [ ] Subtask 7.1: Dashboard com lista de eventos.
-- [ ] Subtask 7.2: Edição de dados do evento.
+- [x] Subtask 7.2: Edição de dados do evento — modal "Editar evento" no detalhe (título/data/local) via `PATCH /events/:id`.
 - [ ] Subtask 7.3: Compartilhamento de link do álbum (visualização pública opcional).
 
 ### Task 8 — Qualidade, Segurança e Deploy
@@ -190,6 +190,7 @@ Decisões:
 - [ ] Subtask 9.3: Mensagens/recados dos convidados junto da foto.
 - [ ] Subtask 9.4: Fluxo do plano Memória — seleção de 30 fotos + pedido do álbum físico polaroid.
 - [ ] Subtask 9.5: Notificação ao casal quando álbum atinge X fotos.
+- [ ] Subtask 9.6: Envio posterior ao evento (offline) — festa sem internet: fotos ficam salvas no dispositivo do convidado (IndexedDB via PWA) e são enviadas depois, quando houver conexão, mesmo com a janela já encerrada (validar via token de sessão da festa).
 
 ---
 

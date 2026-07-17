@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AppLoader from '../components/AppLoader.vue'
 import { useGoogleSignin } from '../composables/use-google-signin'
 import { useUnsplashImage } from '../composables/use-unsplash-image'
 import { ApiError } from '../services/api'
@@ -28,13 +29,22 @@ const { imageUrl, credit } = useUnsplashImage()
 const googleButtonRef = ref<HTMLElement | null>(null)
 const { available: googleAvailable } = useGoogleSignin(googleButtonRef, async (idToken) => {
   errorMessage.value = ''
+  loading.value = true
   try {
     await auth.loginWithGoogle(idToken)
-    router.push({ name: 'dashboard' })
+    await router.push({ name: 'dashboard' })
   } catch (error) {
     errorMessage.value =
       error instanceof ApiError ? error.message : 'Não foi possível conectar ao servidor'
+  } finally {
+    loading.value = false
   }
+})
+
+const loadingLabel = computed(() => {
+  if (mode.value === 'register') return 'Criando sua conta…'
+  if (mode.value === 'forgot') return 'Enviando link…'
+  return 'Entrando…'
 })
 
 const title = computed(() => {
@@ -70,7 +80,7 @@ async function handleSubmit() {
       successMessage.value = 'Se o e-mail existir, você receberá um link de recuperação.'
     } else {
       await auth.login(form.email, form.password)
-      router.push({ name: 'dashboard' })
+      await router.push({ name: 'dashboard' })
     }
   } catch (error) {
     if (error instanceof ApiError) {
@@ -96,7 +106,7 @@ async function handleSubmit() {
         alt="Noiva sorrindo"
         class="absolute inset-0 h-full w-full object-cover"
       />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/20" />
+      <div class="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-black/20" />
 
       <div class="absolute inset-x-0 bottom-0 p-12 text-white">
         <h1 class="font-display text-5xl font-medium tracking-wide">Momentos</h1>
@@ -197,8 +207,7 @@ async function handleSubmit() {
             :disabled="loading"
             class="w-full rounded-lg bg-champagne-500 py-3 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <span v-if="loading">Aguarde…</span>
-            <span v-else-if="mode === 'register'">Criar conta</span>
+            <span v-if="mode === 'register'">Criar conta</span>
             <span v-else-if="mode === 'forgot'">Enviar link</span>
             <span v-else>Entrar</span>
           </button>
@@ -234,5 +243,22 @@ async function handleSubmit() {
         </footer>
       </div>
     </section>
+
+    <!-- overlay de loading -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-200"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="loading"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/20 backdrop-blur-sm"
+      >
+        <div class="rounded-2xl bg-white px-12 py-10 shadow-xl">
+          <AppLoader :label="loadingLabel" class="py-0!" />
+        </div>
+      </div>
+    </Transition>
   </main>
 </template>

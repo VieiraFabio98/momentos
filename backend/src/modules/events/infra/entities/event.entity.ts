@@ -43,6 +43,9 @@ export class EventEntity implements IEvent {
   status: EventStatus
 
   @Column({ type: 'timestamp', nullable: true })
+  opensAt: Date | null
+
+  @Column({ type: 'timestamp', nullable: true })
   expiresAt: Date | null
 
   @CreateDateColumn()

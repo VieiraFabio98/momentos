@@ -10,6 +10,7 @@ export interface IEvent {
   publicToken: string
   plan: EventPlan
   status: EventStatus
+  opensAt: Date | null
   expiresAt: Date | null
   createdAt: Date
   updatedAt: Date

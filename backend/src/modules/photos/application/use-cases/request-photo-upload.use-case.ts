@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
 import { badRequest, forbidden, HttpResponse, notFound, ok } from '../../../../shared/helpers'
 import { EventPlan } from '../../../events/domain/entities/i-event'
+import { getEventWindowState } from '../../../events/domain/services/event-window'
 import {
   EVENT_READ_REPOSITORY,
   IEventReadRepository,
@@ -41,7 +42,7 @@ export class RequestPhotoUploadUseCase {
     if (!event) {
       return notFound('Evento não encontrado')
     }
-    if (event.status === 'expired') {
+    if (getEventWindowState(event) !== 'open') {
       return forbidden()
     }
 

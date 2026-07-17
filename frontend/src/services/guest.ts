@@ -5,6 +5,8 @@ export interface IGuestEvent {
   eventDate: string
   location: string
   status: 'draft' | 'active' | 'expired'
+  windowState: 'upcoming' | 'open' | 'closed'
+  opensAt: string | null
 }
 
 export function getGuestEvent(token: string) {
