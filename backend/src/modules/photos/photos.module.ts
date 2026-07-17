@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from '../auth/auth.module'
 import { EventsModule } from '../events/events.module'
@@ -17,7 +17,7 @@ import { S3StorageProvider } from './infra/providers/s3-storage.provider'
 import { TypeormPhotoRepository } from './infra/repositories/typeorm-photo.repository'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PhotoEntity]), EventsModule, AuthModule],
+  imports: [TypeOrmModule.forFeature([PhotoEntity]), forwardRef(() => EventsModule), AuthModule],
   controllers: [GuestPhotosController, EventPhotosController],
   providers: [
     TypeormPhotoRepository,

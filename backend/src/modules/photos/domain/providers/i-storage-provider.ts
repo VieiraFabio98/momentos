@@ -8,4 +8,5 @@ export interface IStorageProvider {
   getAttachmentUrl(key: string, filename: string): Promise<string>
   getObjectStream(key: string): Promise<Readable>
   exists(key: string): Promise<boolean>
+  deleteObjects(keys: string[]): Promise<void>
 }

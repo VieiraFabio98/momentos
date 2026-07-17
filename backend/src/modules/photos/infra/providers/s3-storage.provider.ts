@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import {
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
@@ -58,6 +59,19 @@ export class S3StorageProvider implements IStorageProvider {
       return true
     } catch {
       return false
+    }
+  }
+
+  async deleteObjects(keys: string[]): Promise<void> {
+    // DeleteObjectsCommand accepts at most 1000 keys per request
+    for (let i = 0; i < keys.length; i += 1000) {
+      const batch = keys.slice(i, i + 1000)
+      await this.client.send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: { Objects: batch.map((key) => ({ Key: key })) },
+        }),
+      )
     }
   }
 }
