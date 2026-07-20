@@ -18,8 +18,4 @@ export class UpdateEventDto {
   @IsOptional()
   @IsDateString()
   opensAt?: string | null
-
-  @IsOptional()
-  @IsDateString()
-  expiresAt?: string | null
 }

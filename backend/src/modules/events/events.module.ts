@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from '../auth/auth.module'
 import { PhotosModule } from '../photos/photos.module'
+import { UsersModule } from '../users/users.module'
 import { CreateEventUseCase } from './application/use-cases/create-event.use-case'
 import { DeleteEventUseCase } from './application/use-cases/delete-event.use-case'
 import { GetEventByPublicTokenUseCase } from './application/use-cases/get-event-by-public-token.use-case'
@@ -20,7 +21,12 @@ import { QrcodeLibProvider } from './infra/providers/qrcode.provider'
 import { TypeormEventRepository } from './infra/repositories/typeorm-event.repository'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([EventEntity]), AuthModule, forwardRef(() => PhotosModule)],
+  imports: [
+    TypeOrmModule.forFeature([EventEntity]),
+    AuthModule,
+    UsersModule,
+    forwardRef(() => PhotosModule),
+  ],
   controllers: [EventsController, GuestEventsController],
   providers: [
     TypeormEventRepository,

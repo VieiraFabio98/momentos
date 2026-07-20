@@ -5,7 +5,7 @@ import {
   IUserReadRepository,
   USER_READ_REPOSITORY,
 } from '../../../users/domain/repositories/i-user-read-repository'
-import { IMailProvider, MAIL_PROVIDER } from '../../domain/providers/i-mail-provider'
+import { IMailProvider, MAIL_PROVIDER } from '../../../mail/domain/i-mail-provider'
 import {
   IPasswordResetTokenRepository,
   PASSWORD_RESET_TOKEN_REPOSITORY,

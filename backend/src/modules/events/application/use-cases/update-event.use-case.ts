@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { badRequest, HttpResponse, notFound, ok } from '../../../../shared/helpers'
+import { HttpResponse, notFound, ok } from '../../../../shared/helpers'
 import { EVENT_REPOSITORY, IEventRepository } from '../../domain/repositories/i-event-repository'
-import { normalizeEventWindow } from '../../domain/services/event-window'
+import { deriveEventWindow } from '../../domain/services/event-window'
 import { EventResponseDto } from '../dto/event-response.dto'
 import { UpdateEventDto } from '../dto/update-event.dto'
 
@@ -24,20 +24,13 @@ export class UpdateEventUseCase {
     }
 
     const opensAtInput = toDateOrNull(dto.opensAt)
-    const expiresAtInput = toDateOrNull(dto.expiresAt)
 
-    let opensAt = opensAtInput
-    let expiresAt = expiresAtInput
-    if (opensAtInput !== undefined || expiresAtInput !== undefined) {
-      const normalized = normalizeEventWindow(
-        opensAtInput === undefined ? event.opensAt : opensAtInput,
-        expiresAtInput === undefined ? event.expiresAt : expiresAtInput,
-      )
-      opensAt = normalized.opensAt
-      expiresAt = normalized.expiresAt
-      if (opensAt && expiresAt && opensAt >= expiresAt) {
-        return badRequest('A liberação deve ser antes do encerramento')
-      }
+    let opensAt: Date | null | undefined
+    let expiresAt: Date | null | undefined
+    if (opensAtInput !== undefined) {
+      const derived = deriveEventWindow(opensAtInput)
+      opensAt = derived.opensAt
+      expiresAt = derived.expiresAt
     }
 
     const updated = await this.eventRepository.update(eventId, {

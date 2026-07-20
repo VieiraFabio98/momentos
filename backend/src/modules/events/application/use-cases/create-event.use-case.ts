@@ -1,29 +1,35 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { randomBytes } from 'node:crypto'
-import { badRequest, created, HttpResponse } from '../../../../shared/helpers'
+import { created, HttpResponse } from '../../../../shared/helpers'
+import { IMailProvider, MAIL_PROVIDER } from '../../../mail/domain/i-mail-provider'
+import {
+  IUserReadRepository,
+  USER_READ_REPOSITORY,
+} from '../../../users/domain/repositories/i-user-read-repository'
+import { IEvent } from '../../domain/entities/i-event'
 import {
   EVENT_WRITE_REPOSITORY,
   IEventWriteRepository,
 } from '../../domain/repositories/i-event-write-repository'
-import { normalizeEventWindow } from '../../domain/services/event-window'
+import { deriveEventWindow } from '../../domain/services/event-window'
 import { CreateEventDto } from '../dto/create-event.dto'
 import { EventResponseDto } from '../dto/event-response.dto'
 
 @Injectable()
 export class CreateEventUseCase {
+  private readonly logger = new Logger('CreateEventUseCase')
+
   constructor(
     @Inject(EVENT_WRITE_REPOSITORY)
     private readonly eventWriteRepository: IEventWriteRepository,
+    @Inject(USER_READ_REPOSITORY)
+    private readonly userReadRepository: IUserReadRepository,
+    @Inject(MAIL_PROVIDER)
+    private readonly mailProvider: IMailProvider,
   ) {}
 
   async execute(userId: string, dto: CreateEventDto): Promise<HttpResponse> {
-    const { opensAt, expiresAt } = normalizeEventWindow(
-      dto.opensAt ? new Date(dto.opensAt) : null,
-      dto.expiresAt ? new Date(dto.expiresAt) : null,
-    )
-    if (opensAt && expiresAt && opensAt >= expiresAt) {
-      return badRequest('A liberação deve ser antes do encerramento')
-    }
+    const { opensAt, expiresAt } = deriveEventWindow(dto.opensAt ? new Date(dto.opensAt) : null)
 
     const event = await this.eventWriteRepository.create({
       userId,
@@ -35,6 +41,44 @@ export class CreateEventUseCase {
       expiresAt,
     })
 
+    await this.sendCreatedEmail(userId, event)
+
     return created(EventResponseDto.fromDomain(event))
   }
+
+  private async sendCreatedEmail(userId: string, event: IEvent): Promise<void> {
+    try {
+      const user = await this.userReadRepository.findById(userId)
+      if (!user) return
+
+      const window =
+        event.opensAt && event.expiresAt
+          ? `<p>Os convidados poderão enviar fotos de
+             <strong>${formatDateTime(event.opensAt)}</strong> até
+             <strong>${formatDateTime(event.expiresAt)}</strong> (janela de 16 horas).</p>`
+          : ''
+
+      await this.mailProvider.send({
+        to: user.email,
+        subject: `Seu evento "${event.title}" foi criado ✨`,
+        html: `
+          <p>Olá, ${user.name}!</p>
+          <p>O evento <strong>${event.title}</strong> foi criado com sucesso no Momentos.</p>
+          ${window}
+          <p>Acesse o painel para gerar o QR Code e compartilhar com seus convidados.</p>
+          <p>Com carinho,<br />Equipe Momentos</p>
+        `,
+      })
+    } catch (error) {
+      this.logger.error(`Falha ao enviar e-mail de evento criado (${event.id})`, error as Error)
+    }
+  }
+}
+
+function formatDateTime(date: Date): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'America/Sao_Paulo',
+  }).format(date)
 }

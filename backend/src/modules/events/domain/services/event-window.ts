@@ -2,15 +2,16 @@ import { IEvent } from '../entities/i-event'
 
 export type EventWindowState = 'upcoming' | 'open' | 'closed'
 
-export function normalizeEventWindow(
-  opensAt: Date | null,
-  expiresAt: Date | null,
-): { opensAt: Date | null; expiresAt: Date | null } {
-  if (opensAt && expiresAt && expiresAt <= opensAt) {
-    const rolled = new Date(expiresAt)
-    rolled.setDate(rolled.getDate() + 1)
-    return { opensAt, expiresAt: rolled }
+export const EVENT_WINDOW_HOURS = 16
+
+export function deriveEventWindow(opensAt: Date | null): {
+  opensAt: Date | null
+  expiresAt: Date | null
+} {
+  if (!opensAt) {
+    return { opensAt: null, expiresAt: null }
   }
+  const expiresAt = new Date(opensAt.getTime() + EVENT_WINDOW_HOURS * 60 * 60 * 1000)
   return { opensAt, expiresAt }
 }
 

@@ -64,14 +64,10 @@ function choosePlan(id: PlanId) {
   draft.plan = id
 }
 
-function buildWindow(): { opensAt?: string; expiresAt?: string } {
-  if (!draft.date || !draft.startTime || !draft.endTime) return {}
+function buildWindow(): { opensAt?: string } {
+  if (!draft.date || !draft.startTime) return {}
   const opens = new Date(`${draft.date}T${draft.startTime}`)
-  const expires = new Date(`${draft.date}T${draft.endTime}`)
-  if (expires <= opens) {
-    expires.setDate(expires.getDate() + 1)
-  }
-  return { opensAt: opens.toISOString(), expiresAt: expires.toISOString() }
+  return { opensAt: opens.toISOString() }
 }
 
 async function handleContinue() {

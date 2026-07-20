@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
@@ -49,9 +49,9 @@ function formatDate(isoDate: string) {
   return `${day}/${month}/${year}`
 }
 
-// janela de envios
+// janela de envios (fixa em 16h a partir do início)
+const WINDOW_HOURS = 16
 const opensAtInput = ref('')
-const expiresAtInput = ref('')
 const savingWindow = ref(false)
 const windowSaved = ref(false)
 const windowError = ref('')
@@ -63,6 +63,13 @@ function isoToLocalInput(iso: string | null): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+const expiresAtDisplay = computed(() => {
+  if (!opensAtInput.value) return ''
+  const opens = new Date(opensAtInput.value)
+  const expires = new Date(opens.getTime() + WINDOW_HOURS * 60 * 60 * 1000)
+  return expires.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+})
+
 async function saveWindow() {
   if (!event.value) return
   savingWindow.value = true
@@ -71,7 +78,6 @@ async function saveWindow() {
   try {
     event.value = await updateEvent(event.value.id, {
       opensAt: opensAtInput.value ? new Date(opensAtInput.value).toISOString() : null,
-      expiresAt: expiresAtInput.value ? new Date(expiresAtInput.value).toISOString() : null,
     })
     windowSaved.value = true
     setTimeout(() => (windowSaved.value = false), 2000)
@@ -143,7 +149,6 @@ onMounted(async () => {
   try {
     event.value = await getEvent(id)
     opensAtInput.value = isoToLocalInput(event.value.opensAt)
-    expiresAtInput.value = isoToLocalInput(event.value.expiresAt)
     const [qr, albumData] = await Promise.all([getEventQrCode(id), listEventPhotos(id)])
     qrCode.value = qr.qrCode
     guestLink.value = qr.guestLink
@@ -245,7 +250,8 @@ onMounted(async () => {
         <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
           <h3 class="font-display text-2xl font-medium text-stone-800">Janela de envios</h3>
           <p class="mt-2 text-sm font-light text-stone-500">
-            Os convidados só conseguem enviar fotos entre o horário inicial e final definidos aqui.
+            Defina o horário de início. Os convidados têm <strong>16 horas</strong> a partir dele
+            para enviar fotos.
           </p>
 
           <div class="mt-6 grid gap-4 sm:grid-cols-2">
@@ -264,18 +270,14 @@ onMounted(async () => {
               />
             </div>
             <div>
-              <label
-                for="expires-at"
-                class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
-              >
-                Fim dos envios
+              <label class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600">
+                Fim dos envios (automático)
               </label>
-              <input
-                id="expires-at"
-                v-model="expiresAtInput"
-                type="datetime-local"
-                class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
-              />
+              <div
+                class="w-full rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-500"
+              >
+                {{ expiresAtDisplay || '—' }}
+              </div>
             </div>
           </div>
 

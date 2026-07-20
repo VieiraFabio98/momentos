@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { IMailMessage, IMailProvider } from '../../domain/providers/i-mail-provider'
+import { IMailMessage, IMailProvider } from '../domain/i-mail-provider'
 
 @Injectable()
 export class ConsoleMailProvider implements IMailProvider {

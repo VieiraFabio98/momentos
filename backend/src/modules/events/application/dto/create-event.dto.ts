@@ -15,8 +15,4 @@ export class CreateEventDto {
   @IsOptional()
   @IsDateString()
   opensAt?: string
-
-  @IsOptional()
-  @IsDateString()
-  expiresAt?: string
 }
