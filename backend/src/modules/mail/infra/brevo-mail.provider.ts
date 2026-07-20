@@ -45,6 +45,9 @@ export class BrevoMailProvider implements IMailProvider, OnModuleInit {
       throw new Error(`Brevo respondeu ${response.status}: ${body}`)
     }
 
-    this.logger.log(`[MAIL] enviado para ${message.to} | subject: ${message.subject}`)
+    const { messageId } = (await response.json()) as { messageId?: string }
+    this.logger.log(
+      `[MAIL] aceito pela Brevo para ${message.to} | subject: ${message.subject} | messageId: ${messageId ?? 'n/a'}`,
+    )
   }
 }
