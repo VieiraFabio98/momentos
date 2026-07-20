@@ -2,7 +2,14 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../services/api'
-import { getGuestEvent, getGuestName, saveGuestName, type IGuestEvent } from '../services/guest'
+import {
+  getGuestEvent,
+  getGuestName,
+  hasConsented,
+  saveConsent,
+  saveGuestName,
+  type IGuestEvent,
+} from '../services/guest'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,6 +19,7 @@ const loading = ref(true)
 const invalid = ref(false)
 const event = ref<IGuestEvent | null>(null)
 const guestName = ref(getGuestName())
+const consent = ref(hasConsented())
 
 const steps = [
   {
@@ -50,9 +58,12 @@ function formatDateTime(iso: string) {
 }
 
 function handleStart() {
+  if (!consent.value) return
+
   if (guestName.value.trim()) {
     saveGuestName(guestName.value.trim())
   }
+  saveConsent()
   router.push({ name: 'guest-camera', params: { token } })
 }
 
@@ -166,9 +177,31 @@ onMounted(async () => {
             class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder-stone-300 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
           />
 
+          <label
+            class="mt-5 flex cursor-pointer items-start gap-3 rounded-lg border border-stone-200 bg-white p-4 text-left"
+          >
+            <input
+              v-model="consent"
+              type="checkbox"
+              class="mt-0.5 h-4 w-4 shrink-0 accent-champagne-500"
+            />
+            <span class="text-xs font-light leading-relaxed text-stone-600">
+              Autorizo que as fotos que eu enviar sejam compartilhadas com os noivos no álbum deste
+              evento. Elas ficam disponíveis por 7 dias e depois são excluídas.
+              <RouterLink
+                to="/privacidade"
+                target="_blank"
+                class="font-medium text-champagne-600 underline underline-offset-2"
+              >
+                Política de privacidade
+              </RouterLink>
+            </span>
+          </label>
+
           <button
             type="button"
-            class="mt-6 w-full rounded-lg bg-champagne-500 py-3.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
+            :disabled="!consent"
+            class="mt-6 w-full rounded-lg bg-champagne-500 py-3.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600 disabled:cursor-not-allowed disabled:opacity-40"
             @click="handleStart"
           >
             Começar a fotografar 📸

@@ -32,6 +32,12 @@ export class PhotoEntity implements IPhoto {
   @Column({ default: true })
   approved: boolean
 
+  @Column({ type: 'varchar', length: 20 })
+  consentVersion: string
+
+  @Column({ type: 'timestamp' })
+  consentedAt: Date
+
   @CreateDateColumn()
   createdAt: Date
 }

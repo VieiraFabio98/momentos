@@ -6,6 +6,8 @@ export interface ICreatePhotoData {
   eventId: string
   storageKey: string
   guestName: string | null
+  consentVersion: string
+  consentedAt: Date
 }
 
 export interface IPhotoWriteRepository {

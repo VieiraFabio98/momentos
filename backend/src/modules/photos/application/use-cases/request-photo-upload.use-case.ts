@@ -56,7 +56,11 @@ export class RequestPhotoUploadUseCase {
 
     const extension = EXTENSION_BY_TYPE[dto.contentType]
     const storageKey = `events/${event.id}/photos/${randomUUID()}.${extension}`
-    const uploadUrl = await this.storageProvider.getUploadUrl(storageKey, dto.contentType)
+    const uploadUrl = await this.storageProvider.getUploadUrl(
+      storageKey,
+      dto.contentType,
+      dto.size,
+    )
 
     return ok({ uploadUrl, storageKey })
   }

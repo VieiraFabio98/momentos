@@ -37,6 +37,11 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/privacidade',
+      name: 'privacy',
+      component: () => import('../views/PrivacyView.vue'),
+    },
+    {
       path: '/e/:token',
       name: 'guest-landing',
       component: () => import('../views/GuestLandingView.vue'),

@@ -8,6 +8,9 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "typeorm": "typeorm-ts-node-commonjs -d src/database/data-source.ts",
@@ -46,10 +49,12 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.0",
     "@types/qrcode": "^1.5.6",
+    "@vitest/coverage-v8": "^4.1.10",
     "prettier": "^3.4.0",
     "ts-loader": "^9.5.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.10"
   }
 }

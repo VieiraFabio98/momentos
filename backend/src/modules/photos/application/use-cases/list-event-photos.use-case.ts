@@ -11,7 +11,7 @@ import {
 } from '../../domain/repositories/i-photo-read-repository'
 
 export function photoFilename(storageKey: string, index: number): string {
-  const extension = storageKey.split('.').pop() ?? 'jpg'
+  const extension = storageKey.includes('.') ? storageKey.split('.').pop()! : 'jpg'
   return `momento-${String(index + 1).padStart(3, '0')}.${extension}`
 }
 

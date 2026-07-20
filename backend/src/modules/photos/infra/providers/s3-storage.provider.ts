@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { Readable } from 'node:stream'
-import { IStorageProvider } from '../../domain/providers/i-storage-provider'
+import { IObjectMetadata, IStorageProvider } from '../../domain/providers/i-storage-provider'
 
 const UPLOAD_URL_TTL_SECONDS = 300
 const DOWNLOAD_URL_TTL_SECONDS = 3600
@@ -18,11 +18,18 @@ export class S3StorageProvider implements IStorageProvider {
   private readonly client = new S3Client({ region: process.env.AWS_REGION })
   private readonly bucket = process.env.S3_BUCKET_NAME
 
-  getUploadUrl(key: string, contentType: string): Promise<string> {
+  getUploadUrl(key: string, contentType: string, size: number): Promise<string> {
+    // ContentLength entra nos headers assinados: o cliente é obrigado a enviar
+    // exatamente esse tamanho, senão o S3 rejeita a requisição
     return getSignedUrl(
       this.client,
-      new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType }),
-      { expiresIn: UPLOAD_URL_TTL_SECONDS },
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: contentType,
+        ContentLength: size,
+      }),
+      { expiresIn: UPLOAD_URL_TTL_SECONDS, signableHeaders: new Set(['content-length']) },
     )
   }
 
@@ -53,12 +60,17 @@ export class S3StorageProvider implements IStorageProvider {
     return result.Body as Readable
   }
 
-  async exists(key: string): Promise<boolean> {
+  async getObjectMetadata(key: string): Promise<IObjectMetadata | null> {
     try {
-      await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }))
-      return true
+      const result = await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+      )
+      return {
+        size: result.ContentLength ?? 0,
+        contentType: result.ContentType ?? '',
+      }
     } catch {
-      return false
+      return null
     }
   }
 

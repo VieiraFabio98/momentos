@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useOnline } from '../composables/use-online'
 import {
   confirmPhotoUpload,
   getGuestName,
   requestPhotoUpload,
   uploadToStorage,
+  validatePhotoFile,
 } from '../services/guest'
 
 const route = useRoute()
 const router = useRouter()
 const token = String(route.params.token ?? '')
 const guestName = getGuestName()
+const { online } = useOnline()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -28,6 +31,7 @@ let stream: MediaStream | null = null
 
 const MAX_DIMENSION = 1920
 const JPEG_QUALITY = 0.8
+const MAX_RAW_FILE_BYTES = 40 * 1024 * 1024
 
 // FLAG: moldura polaroid nas fotos. Não gostou? `false` aqui desliga tudo.
 const POLAROID_FRAME_ENABLED = true
@@ -125,16 +129,34 @@ async function capture() {
 }
 
 async function handleFileFallback(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
   if (!file) return
   errorMessage.value = ''
 
+  // limite no arquivo cru só p/ não estourar memória ao decodificar;
+  // o blob final é revalidado no envio
+  if (!file.type.startsWith('image/') || file.size > MAX_RAW_FILE_BYTES) {
+    errorMessage.value = 'Arquivo inválido. Escolha uma imagem de até 40 MB.'
+    input.value = ''
+    return
+  }
+
   const image = new Image()
   image.src = URL.createObjectURL(file)
-  await new Promise((resolve) => (image.onload = resolve))
-  capturedBlob.value = await compressToJpeg(image)
-  capturedUrl.value = URL.createObjectURL(capturedBlob.value)
-  URL.revokeObjectURL(image.src)
+  try {
+    await new Promise((resolve, reject) => {
+      image.onload = resolve
+      image.onerror = () => reject(new Error('decode'))
+    })
+    capturedBlob.value = await compressToJpeg(image)
+    capturedUrl.value = URL.createObjectURL(capturedBlob.value)
+  } catch {
+    errorMessage.value = 'Não foi possível ler essa imagem. Tente outra.'
+  } finally {
+    URL.revokeObjectURL(image.src)
+    input.value = ''
+  }
 }
 
 function discardCapture() {
@@ -145,11 +167,27 @@ function discardCapture() {
 
 async function sendPhoto() {
   if (!capturedBlob.value) return
+
+  const validationError = validatePhotoFile(capturedBlob.value)
+  if (validationError) {
+    errorMessage.value = validationError
+    return
+  }
+
+  if (!online.value) {
+    errorMessage.value = 'Você está sem conexão. A foto continua aqui — tente de novo em instantes.'
+    return
+  }
+
   sending.value = true
   errorMessage.value = ''
 
   try {
-    const { uploadUrl, storageKey } = await requestPhotoUpload(token, 'image/jpeg')
+    const { uploadUrl, storageKey } = await requestPhotoUpload(
+      token,
+      capturedBlob.value.type,
+      capturedBlob.value.size,
+    )
     await uploadToStorage(uploadUrl, capturedBlob.value)
     await confirmPhotoUpload(token, storageKey, guestName)
 
@@ -178,7 +216,13 @@ onBeforeUnmount(stopCamera)
         ← Voltar
       </button>
       <span
-        v-if="sentCount > 0"
+        v-if="!online"
+        class="rounded-full bg-amber-500/90 px-4 py-2 text-xs font-medium text-white backdrop-blur"
+      >
+        Sem conexão
+      </span>
+      <span
+        v-else-if="sentCount > 0"
         class="rounded-full bg-black/40 px-4 py-2 text-xs text-white backdrop-blur"
       >
         {{ sentCount }} {{ sentCount === 1 ? 'momento enviado' : 'momentos enviados' }} ✨

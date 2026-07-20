@@ -105,12 +105,16 @@ Cobrança **fixa por evento** (não por foto, não por convidado — foto ilimit
 
 | Plano | Preço | O que inclui |
 |---|---|---|
-| **Degustação** | R$ 0 | 30 fotos, convidados ilimitados, álbum disponível por 7 dias |
-| **Momento** | R$ 29,90 | Fotos e convidados ilimitados, álbum por 6 meses, download ZIP |
-| **Memória** | R$ 350,00 | Tudo do Momento + retenção 2 anos + casal seleciona 30 fotos e **recebe álbum físico em casa no estilo polaroid** |
+| **Degustação** | R$ 0 | 30 fotos, convidados ilimitados |
+| **Momento** | R$ 29,90 | Fotos e convidados ilimitados, download ZIP |
+| **Memória** | R$ 350,00 | Tudo do Momento + casal seleciona 30 fotos e **recebe álbum físico em casa no estilo polaroid** |
+
+> **Retenção:** em todos os planos as fotos ficam disponíveis por **7 dias após o
+> encerramento do evento** e depois são excluídas. É o prazo declarado na Política de
+> Privacidade — mudar aqui exige mudar lá também.
 
 Decisões:
-- Diferenciação por retenção/extras, nunca por quantidade de fotos.
+- Diferenciação por extras, nunca por quantidade de fotos nem por retenção.
 - Degustação serve de marketing: cada festa expõe o app a dezenas de futuros noivos.
 - Gateway sugerido: Mercado Pago (Pix) ou Stripe.
 - Custo de infra por evento (~4 GB S3) < R$ 1 — margem alta em todos os planos.
@@ -178,11 +182,13 @@ Decisões:
 
 ### Task 8 — Qualidade, Segurança e Deploy
 - [ ] Subtask 8.1: Regras de acesso (authorization) — convidado só envia, casal só lê o próprio evento.
-- [ ] Subtask 8.2: Validação de tipo/tamanho de arquivo no upload.
-- [ ] Subtask 8.3: Testes unitários e e2e dos fluxos críticos.
-- [ ] Subtask 8.4: Otimização PWA (offline básico, ícones, manifest).
+- [x] Subtask 8.2: Validação de tipo/tamanho de arquivo no upload.
+- [x] Subtask 8.3: Testes unitários dos fluxos críticos (Vitest, `npm test` no backend). E2E com Postgres real ficou para depois.
+- [x] Subtask 8.4: Otimização PWA (offline básico, ícones, manifest).
 - [ ] Subtask 8.5: Deploy de produção + domínio + HTTPS.
-- [ ] Subtask 8.6: LGPD: consentimento de uso de imagem e política de privacidade.
+- [x] Subtask 8.6: LGPD: consentimento de uso de imagem e política de privacidade.
+- [ ] Subtask 8.7: Job de exclusão automática das fotos 7 dias após o fim do evento. **A Política de Privacidade já promete esse prazo — precisa existir antes de divulgar o app.**
+- [ ] Subtask 8.8: Preencher os dados do controlador (nome, CPF/CNPJ, e-mail) em `PrivacyView.vue` — hoje estão como `[PLACEHOLDER]`.
 
 ### Task 9 — Extras (Backlog / Pós-MVP)
 - [ ] Subtask 9.1: Filtros/molduras estilo polaroid nas fotos.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import AppLoader from '../components/AppLoader.vue'
 import { useGoogleSignin } from '../composables/use-google-signin'
 import { useUnsplashImage } from '../composables/use-unsplash-image'
@@ -240,6 +240,12 @@ async function handleSubmit() {
               Voltar para o login
             </button>
           </template>
+
+          <p class="mt-4 text-xs font-light text-stone-400">
+            <RouterLink to="/privacidade" class="underline underline-offset-2 hover:text-stone-500">
+              Política de privacidade
+            </RouterLink>
+          </p>
         </footer>
       </div>
     </section>
