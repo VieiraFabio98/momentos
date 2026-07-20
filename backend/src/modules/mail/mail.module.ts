@@ -1,14 +1,14 @@
 import { Global, Module } from '@nestjs/common'
 import { MAIL_PROVIDER } from './domain/i-mail-provider'
+import { BrevoMailProvider } from './infra/brevo-mail.provider'
 import { ConsoleMailProvider } from './infra/console-mail.provider'
-import { GmailMailProvider } from './infra/gmail-mail.provider'
 
 @Global()
 @Module({
   providers: [
     {
       provide: MAIL_PROVIDER,
-      useClass: process.env.GMAIL_USER ? GmailMailProvider : ConsoleMailProvider,
+      useClass: process.env.BREVO_API_KEY ? BrevoMailProvider : ConsoleMailProvider,
     },
   ],
   exports: [MAIL_PROVIDER],
