@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
 import AppLoader from '../components/AppLoader.vue'
+import TimeSelect from '../components/TimeSelect.vue'
 import { ApiError } from '../services/api'
 import {
   downloadEventAlbum,
@@ -49,23 +50,30 @@ function formatDate(isoDate: string) {
   return `${day}/${month}/${year}`
 }
 
-// janela de envios (fixa em 16h a partir do início)
+// janela de envios (fixa em 16h a partir do início). A data é sempre a do
+// evento — o casal só escolhe o horário de início.
 const WINDOW_HOURS = 16
-const opensAtInput = ref('')
+const startTime = ref('')
 const savingWindow = ref(false)
 const windowSaved = ref(false)
 const windowError = ref('')
 
-function isoToLocalInput(iso: string | null): string {
+function isoToTimeInput(iso: string | null): string {
   if (!iso) return ''
   const date = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+// combina a data do evento com o horário escolhido, no fuso local
+function buildOpensAt(): Date | null {
+  if (!event.value || !startTime.value) return null
+  return new Date(`${event.value.eventDate}T${startTime.value}`)
 }
 
 const expiresAtDisplay = computed(() => {
-  if (!opensAtInput.value) return ''
-  const opens = new Date(opensAtInput.value)
+  const opens = buildOpensAt()
+  if (!opens) return ''
   const expires = new Date(opens.getTime() + WINDOW_HOURS * 60 * 60 * 1000)
   return expires.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 })
@@ -77,7 +85,7 @@ async function saveWindow() {
   windowSaved.value = false
   try {
     event.value = await updateEvent(event.value.id, {
-      opensAt: opensAtInput.value ? new Date(opensAtInput.value).toISOString() : null,
+      opensAt: buildOpensAt()?.toISOString() ?? null,
     })
     windowSaved.value = true
     setTimeout(() => (windowSaved.value = false), 2000)
@@ -148,7 +156,7 @@ onMounted(async () => {
   const id = String(route.params.id)
   try {
     event.value = await getEvent(id)
-    opensAtInput.value = isoToLocalInput(event.value.opensAt)
+    startTime.value = isoToTimeInput(event.value.opensAt)
     const [qr, albumData] = await Promise.all([getEventQrCode(id), listEventPhotos(id)])
     qrCode.value = qr.qrCode
     guestLink.value = qr.guestLink
@@ -250,8 +258,8 @@ onMounted(async () => {
         <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
           <h3 class="font-display text-2xl font-medium text-stone-800">Janela de envios</h3>
           <p class="mt-2 text-sm font-light text-stone-500">
-            Defina o horário de início. Os convidados têm <strong>16 horas</strong> a partir dele
-            para enviar fotos.
+            Os envios começam no dia da festa, no horário que você definir. Os convidados têm
+            <strong>16 horas</strong> a partir dele para enviar fotos.
           </p>
 
           <div class="mt-6 grid gap-4 sm:grid-cols-2">
@@ -261,13 +269,11 @@ onMounted(async () => {
                 class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
               >
                 Início dos envios
+                <span class="font-light text-stone-400">
+                  · {{ event ? formatDate(event.eventDate) : '' }}
+                </span>
               </label>
-              <input
-                id="opens-at"
-                v-model="opensAtInput"
-                type="datetime-local"
-                class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
-              />
+              <TimeSelect id="opens-at" v-model="startTime" />
             </div>
             <div>
               <label class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600">

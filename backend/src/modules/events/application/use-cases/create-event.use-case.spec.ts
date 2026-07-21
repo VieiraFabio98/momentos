@@ -39,6 +39,16 @@ describe('CreateEventUseCase', () => {
     expect(response.data.expiresAt?.toISOString()).toBe('2026-06-21T10:00:00.000Z')
   })
 
+  it('recusa início de envios fora do dia da festa', async () => {
+    const response = await useCase.execute('user-1', {
+      ...dto,
+      opensAt: '2026-06-25T18:00:00.000Z',
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(events.events).toHaveLength(0)
+  })
+
   it('envia e-mail de confirmação para o casal', async () => {
     await useCase.execute('user-1', dto)
 

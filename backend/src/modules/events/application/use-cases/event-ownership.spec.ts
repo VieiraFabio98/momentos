@@ -63,6 +63,25 @@ describe('Eventos — ownership do casal', () => {
       expect(response.data.expiresAt?.toISOString()).toBe('2026-06-21T10:00:00.000Z')
     })
 
+    it('recusa início de envios fora do dia da festa', async () => {
+      const response = await new UpdateEventUseCase(events).execute('user-1', 'event-1', {
+        opensAt: '2026-06-25T18:00:00.000Z',
+      })
+
+      expect(response.statusCode).toBe(400)
+      expect(events.events[0].opensAt).toBeNull()
+    })
+
+    it('valida contra a nova data quando o evento é remarcado no mesmo pedido', async () => {
+      const response = await new UpdateEventUseCase(events).execute('user-1', 'event-1', {
+        eventDate: '2026-07-04',
+        opensAt: '2026-07-04T21:00:00.000Z',
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.data.eventDate).toBe('2026-07-04')
+    })
+
     it('preserva a janela quando opensAt não vem no payload', async () => {
       events.events[0].opensAt = new Date('2026-06-20T18:00:00.000Z')
       events.events[0].expiresAt = new Date('2026-06-21T10:00:00.000Z')

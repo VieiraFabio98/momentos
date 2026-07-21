@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { HttpResponse, notFound, ok } from '../../../../shared/helpers'
+import { badRequest, HttpResponse, notFound, ok } from '../../../../shared/helpers'
 import { EVENT_REPOSITORY, IEventRepository } from '../../domain/repositories/i-event-repository'
-import { deriveEventWindow } from '../../domain/services/event-window'
+import { deriveEventWindow, opensAtMatchesEventDate } from '../../domain/services/event-window'
 import { EventResponseDto } from '../dto/event-response.dto'
 import { UpdateEventDto } from '../dto/update-event.dto'
 
@@ -28,6 +28,11 @@ export class UpdateEventUseCase {
     let opensAt: Date | null | undefined
     let expiresAt: Date | null | undefined
     if (opensAtInput !== undefined) {
+      // a data da festa manda: só o horário de início é editável
+      const eventDate = dto.eventDate ?? event.eventDate
+      if (opensAtInput && !opensAtMatchesEventDate(opensAtInput, eventDate)) {
+        return badRequest('O início dos envios deve ser no dia do evento')
+      }
       const derived = deriveEventWindow(opensAtInput)
       opensAt = derived.opensAt
       expiresAt = derived.expiresAt

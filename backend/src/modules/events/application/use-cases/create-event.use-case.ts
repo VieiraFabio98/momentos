@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { randomBytes } from 'node:crypto'
-import { created, HttpResponse } from '../../../../shared/helpers'
+import { badRequest, created, HttpResponse } from '../../../../shared/helpers'
 import { IMailProvider, MAIL_PROVIDER } from '../../../mail/domain/i-mail-provider'
 import {
   IUserReadRepository,
@@ -11,7 +11,7 @@ import {
   EVENT_WRITE_REPOSITORY,
   IEventWriteRepository,
 } from '../../domain/repositories/i-event-write-repository'
-import { deriveEventWindow } from '../../domain/services/event-window'
+import { deriveEventWindow, opensAtMatchesEventDate } from '../../domain/services/event-window'
 import { CreateEventDto } from '../dto/create-event.dto'
 import { EventResponseDto } from '../dto/event-response.dto'
 
@@ -29,7 +29,12 @@ export class CreateEventUseCase {
   ) {}
 
   async execute(userId: string, dto: CreateEventDto): Promise<HttpResponse> {
-    const { opensAt, expiresAt } = deriveEventWindow(dto.opensAt ? new Date(dto.opensAt) : null)
+    const opensAtInput = dto.opensAt ? new Date(dto.opensAt) : null
+    if (opensAtInput && !opensAtMatchesEventDate(opensAtInput, dto.eventDate)) {
+      return badRequest('O início dos envios deve ser no dia do evento')
+    }
+
+    const { opensAt, expiresAt } = deriveEventWindow(opensAtInput)
 
     const event = await this.eventWriteRepository.create({
       userId,
