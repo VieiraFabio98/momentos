@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { badRequest, HttpResponse, notFound, ok } from '../../../../shared/helpers'
 import { EVENT_REPOSITORY, IEventRepository } from '../../domain/repositories/i-event-repository'
-import { deriveEventWindow, opensAtMatchesEventDate } from '../../domain/services/event-window'
+import {
+  deriveEventWindow,
+  moveWindowToEventDate,
+  opensAtMatchesEventDate,
+} from '../../domain/services/event-window'
 import { EventResponseDto } from '../dto/event-response.dto'
 import { UpdateEventDto } from '../dto/update-event.dto'
 
@@ -25,15 +29,22 @@ export class UpdateEventUseCase {
 
     const opensAtInput = toDateOrNull(dto.opensAt)
 
+    const eventDate = dto.eventDate ?? event.eventDate
+    const eventDateChanged = dto.eventDate !== undefined && dto.eventDate !== event.eventDate
+
     let opensAt: Date | null | undefined
     let expiresAt: Date | null | undefined
     if (opensAtInput !== undefined) {
       // a data da festa manda: só o horário de início é editável
-      const eventDate = dto.eventDate ?? event.eventDate
       if (opensAtInput && !opensAtMatchesEventDate(opensAtInput, eventDate)) {
         return badRequest('O início dos envios deve ser no dia do evento')
       }
       const derived = deriveEventWindow(opensAtInput)
+      opensAt = derived.opensAt
+      expiresAt = derived.expiresAt
+    } else if (eventDateChanged && event.opensAt) {
+      // remarcou a festa sem tocar na janela: a janela vai junto, no mesmo horário
+      const derived = deriveEventWindow(moveWindowToEventDate(event.opensAt, eventDate))
       opensAt = derived.opensAt
       expiresAt = derived.expiresAt
     }

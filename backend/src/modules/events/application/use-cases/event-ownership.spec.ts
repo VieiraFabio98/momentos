@@ -72,6 +72,38 @@ describe('Eventos — ownership do casal', () => {
       expect(events.events[0].opensAt).toBeNull()
     })
 
+    it('leva a janela junto ao remarcar a festa, preservando o horário', async () => {
+      // festa em 20/06 com envios abrindo às 18h de Brasília
+      events.events[0].opensAt = new Date('2026-06-20T21:00:00.000Z')
+      events.events[0].expiresAt = new Date('2026-06-21T13:00:00.000Z')
+
+      const response = await new UpdateEventUseCase(events).execute('user-1', 'event-1', {
+        eventDate: '2026-07-04',
+      })
+
+      expect(response.data.opensAt?.toISOString()).toBe('2026-07-04T21:00:00.000Z')
+      expect(response.data.expiresAt?.toISOString()).toBe('2026-07-05T13:00:00.000Z')
+    })
+
+    it('não inventa janela ao remarcar evento que não tinha uma', async () => {
+      const response = await new UpdateEventUseCase(events).execute('user-1', 'event-1', {
+        eventDate: '2026-07-04',
+      })
+
+      expect(response.data.opensAt).toBeNull()
+      expect(response.data.expiresAt).toBeNull()
+    })
+
+    it('mantém a janela ao editar só o título', async () => {
+      events.events[0].opensAt = new Date('2026-06-20T21:00:00.000Z')
+
+      const response = await new UpdateEventUseCase(events).execute('user-1', 'event-1', {
+        title: 'Outro título',
+      })
+
+      expect(response.data.opensAt?.toISOString()).toBe('2026-06-20T21:00:00.000Z')
+    })
+
     it('valida contra a nova data quando o evento é remarcado no mesmo pedido', async () => {
       const response = await new UpdateEventUseCase(events).execute('user-1', 'event-1', {
         eventDate: '2026-07-04',

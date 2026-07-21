@@ -93,7 +93,7 @@ onMounted(async () => {
 
       <template v-else>
         <div class="mb-8 flex items-center justify-between">
-          <h2 class="font-display text-3xl font-medium text-stone-800">Seus eventos</h2>
+          <h2 class="font-display text-3xl font-medium text-stone-800">Seu evento</h2>
           <button
             type="button"
             class="rounded-lg bg-champagne-500 px-6 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"

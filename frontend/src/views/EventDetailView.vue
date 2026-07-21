@@ -131,12 +131,18 @@ function openEdit() {
   editing.value = true
 }
 
+const dateChangedInEdit = computed(
+  () => !!event.value && editForm.value.eventDate !== event.value.eventDate,
+)
+
 async function saveEdit() {
   if (!event.value) return
   savingEdit.value = true
   editError.value = ''
   try {
     event.value = await updateEvent(event.value.id, { ...editForm.value })
+    // o backend reancora a janela na nova data — reflete isso no formulário
+    startTime.value = isoToTimeInput(event.value.opensAt)
     editing.value = false
   } catch (error) {
     editError.value =
@@ -220,7 +226,66 @@ onMounted(async () => {
           </button>
         </header>
 
-        <div class="rounded-2xl border border-stone-200 bg-white p-8 text-center">
+        <!-- álbum -->
+        <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="font-display text-2xl font-medium text-stone-800">Álbum</h3>
+            <div class="flex items-center gap-4">
+              <p v-if="album" class="text-xs text-stone-400">
+                {{ album.total }} {{ album.total === 1 ? 'momento' : 'momentos' }}
+                <template v-if="album.participants > 0">
+                  · {{ album.participants }}
+                  {{ album.participants === 1 ? 'convidado' : 'convidados' }}
+                </template>
+              </p>
+              <button
+                v-if="album && album.total > 0"
+                type="button"
+                :disabled="downloadingAlbum"
+                class="rounded-lg border border-champagne-400 px-4 py-2 text-xs font-medium text-champagne-600 transition hover:bg-champagne-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                @click="handleDownloadAlbum"
+              >
+                {{ downloadingAlbum ? 'Preparando…' : 'Baixar álbum (.zip)' }}
+              </button>
+            </div>
+          </div>
+
+          <p v-if="downloadError" class="mt-3 text-right text-xs text-red-500">
+            {{ downloadError }}
+          </p>
+
+          <p
+            v-if="!album || album.total === 0"
+            class="mt-6 text-center text-sm font-light text-stone-400"
+          >
+            Nenhum momento registrado ainda
+          </p>
+
+          <div v-else class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <button
+              v-for="photo in album.photos"
+              :key="photo.id"
+              type="button"
+              class="group relative aspect-square overflow-hidden rounded-xl bg-ivory-100"
+              @click="openLightbox(photo)"
+            >
+              <img
+                :src="photo.url"
+                :alt="photo.guestName ? `Foto de ${photo.guestName}` : 'Foto do evento'"
+                loading="lazy"
+                class="h-full w-full object-cover transition group-hover:scale-105"
+              />
+              <span
+                v-if="photo.guestName"
+                class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent px-3 pt-6 pb-2 text-left text-xs text-white"
+              >
+                {{ photo.guestName }}
+              </span>
+            </button>
+          </div>
+        </div> 
+
+        <div class="rounded-2xl border border-stone-200 bg-white p-8 text-center mt-8">
           <h3 class="font-display text-2xl font-medium text-stone-800">QR Code</h3>
           <p class="mx-auto mt-2 max-w-md text-sm font-light text-stone-500">
             Imprima e espalhe pelas mesas, cada convidado vira um fotógrafo do seu
@@ -277,7 +342,7 @@ onMounted(async () => {
             </div>
             <div>
               <label class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600">
-                Fim dos envios (automático)
+                Fim dos envios
               </label>
               <div
                 class="w-full rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-500"
@@ -299,64 +364,6 @@ onMounted(async () => {
           </button>
         </div>
 
-        <!-- álbum -->
-        <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <h3 class="font-display text-2xl font-medium text-stone-800">Álbum</h3>
-            <div class="flex items-center gap-4">
-              <p v-if="album" class="text-xs text-stone-400">
-                {{ album.total }} {{ album.total === 1 ? 'momento' : 'momentos' }}
-                <template v-if="album.participants > 0">
-                  · {{ album.participants }}
-                  {{ album.participants === 1 ? 'convidado' : 'convidados' }}
-                </template>
-              </p>
-              <button
-                v-if="album && album.total > 0"
-                type="button"
-                :disabled="downloadingAlbum"
-                class="rounded-lg border border-champagne-400 px-4 py-2 text-xs font-medium text-champagne-600 transition hover:bg-champagne-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                @click="handleDownloadAlbum"
-              >
-                {{ downloadingAlbum ? 'Preparando…' : 'Baixar álbum (.zip)' }}
-              </button>
-            </div>
-          </div>
-
-          <p v-if="downloadError" class="mt-3 text-right text-xs text-red-500">
-            {{ downloadError }}
-          </p>
-
-          <p
-            v-if="!album || album.total === 0"
-            class="mt-6 text-center text-sm font-light text-stone-400"
-          >
-            Nenhum momento ainda — compartilhe o QR Code e deixe a festa fotografar ✨
-          </p>
-
-          <div v-else class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <button
-              v-for="photo in album.photos"
-              :key="photo.id"
-              type="button"
-              class="group relative aspect-square overflow-hidden rounded-xl bg-ivory-100"
-              @click="openLightbox(photo)"
-            >
-              <img
-                :src="photo.url"
-                :alt="photo.guestName ? `Foto de ${photo.guestName}` : 'Foto do evento'"
-                loading="lazy"
-                class="h-full w-full object-cover transition group-hover:scale-105"
-              />
-              <span
-                v-if="photo.guestName"
-                class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent px-3 pt-6 pb-2 text-left text-xs text-white"
-              >
-                {{ photo.guestName }}
-              </span>
-            </button>
-          </div>
-        </div> 
       </template>
     </section>
 
@@ -474,6 +481,15 @@ onMounted(async () => {
               />
             </div>
           </div>
+
+          <p
+            v-if="dateChangedInEdit && event?.opensAt"
+            class="mt-4 rounded-lg bg-ivory-100 px-4 py-3 text-xs font-light text-stone-600"
+          >
+            A janela de envios acompanha a nova data, mantendo o horário das
+            <strong class="font-medium">{{ startTime }}</strong
+            >.
+          </p>
 
           <p v-if="editError" class="mt-4 text-sm text-red-500">{{ editError }}</p>
 

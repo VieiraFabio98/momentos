@@ -33,6 +33,29 @@ export function opensAtMatchesEventDate(opensAt: Date, eventDate: string): boole
   return toEventDate(opensAt) === eventDate
 }
 
+// 'HH:mm' do instante no fuso do evento
+export function toEventTime(date: Date): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: EVENT_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
+// o Brasil não adota horário de verão desde 2019, então o offset é fixo;
+// se voltar a adotar, este é o ponto a revisar
+const EVENT_UTC_OFFSET = '-03:00'
+
+export function eventDateTimeToUtc(eventDate: string, time: string): Date {
+  return new Date(`${eventDate}T${time}:00${EVENT_UTC_OFFSET}`)
+}
+
+// mantém o horário escolhido pelo casal, mas ancorado na nova data da festa
+export function moveWindowToEventDate(opensAt: Date, eventDate: string): Date {
+  return eventDateTimeToUtc(eventDate, toEventTime(opensAt))
+}
+
 export function getEventWindowState(event: IEvent, now: Date = new Date()): EventWindowState {
   if (event.status === 'expired') {
     return 'closed'
