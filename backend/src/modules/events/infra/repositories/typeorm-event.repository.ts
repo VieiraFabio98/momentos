@@ -28,6 +28,27 @@ export class TypeormEventRepository implements IEventRepository {
     return this.repository.findOneBy({ publicToken })
   }
 
+  findByDisplayToken(displayToken: string): Promise<IEvent | null> {
+    return this.repository.findOneBy({ displayToken })
+  }
+
+  // O encerramento é o fim da janela de envios; quando o casal nunca definiu
+  // uma janela, cai no fim do dia da festa — senão o álbum ficaria elegível
+  // para sempre e nunca seria apagado. A diferença de fuso entre a meia-noite
+  // UTC e a de Brasília é irrelevante diante dos 7 dias de folga.
+  findPendingPhotoPurge(endedBefore: Date, limit: number): Promise<IEvent[]> {
+    return this.repository
+      .createQueryBuilder('event')
+      .where('event.photos_purged_at IS NULL')
+      .andWhere(
+        `COALESCE(event.expires_at, event.event_date::timestamp + INTERVAL '1 day') < :endedBefore`,
+        { endedBefore },
+      )
+      .orderBy('event.event_date', 'ASC')
+      .limit(limit)
+      .getMany()
+  }
+
   create(data: ICreateEventData): Promise<IEvent> {
     const event = this.repository.create(data)
     return this.repository.save(event)

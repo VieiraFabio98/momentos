@@ -21,9 +21,14 @@ function handleLogout() {
         <h1 class="font-display text-2xl font-semibold text-stone-800">Momentos</h1>
       </RouterLink>
       <div class="flex items-center gap-4">
-        <span v-if="auth.user" class="max-w-40 truncate text-sm text-stone-500">
+        <RouterLink
+          v-if="auth.user"
+          :to="{ name: 'profile' }"
+          title="Sua conta"
+          class="max-w-40 truncate text-sm text-stone-500 underline decoration-transparent underline-offset-4 transition hover:text-champagne-600 hover:decoration-champagne-400"
+        >
           Olá, {{ firstName }}
-        </span>
+        </RouterLink>
         <button
           class="rounded-lg border border-stone-200 px-4 py-2 text-sm text-stone-600 transition hover:border-champagne-400 hover:text-champagne-600"
           @click="handleLogout"

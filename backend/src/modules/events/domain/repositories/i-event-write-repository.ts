@@ -7,6 +7,7 @@ export interface ICreateEventData {
   title: string
   eventDate: string
   publicToken: string
+  displayToken: string
   plan: EventPlan
   opensAt?: Date | null
   expiresAt?: Date | null
@@ -19,6 +20,8 @@ export interface IUpdateEventData {
   status?: EventStatus
   opensAt?: Date | null
   expiresAt?: Date | null
+  photosPurgedAt?: Date | null
+  displayToken?: string
 }
 
 export interface IEventWriteRepository {

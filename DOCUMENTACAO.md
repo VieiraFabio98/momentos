@@ -124,12 +124,12 @@ Decisões:
 
 ## 4. Tasks de Desenvolvimento
 
-> Marque `[x]` conforme concluir. Estado atualizado em 2026-07-08.
+> Marque `[x]` conforme concluir. Estado atualizado em 2026-07-26.
 
 ### Task 1 — Setup do Projeto
 - [x] Subtask 1.1: Criar repositório e estrutura de pastas (frontend/backend).
 - [x] Subtask 1.2: Configurar Vue 3 + Vite + Tailwind (+ Pinia e Vue Router).
-- [ ] Subtask 1.2.1: Adicionar `vite-plugin-pwa` (manifest + service worker).
+- [x] Subtask 1.2.1: Adicionar `vite-plugin-pwa` (manifest + service worker).
 - [x] Subtask 1.3: Configurar backend NestJS + TypeORM + `docker-compose` (Postgres) + variáveis de ambiente.
 - [x] Subtask 1.3.1: Migrations TypeORM configuradas (`migration:generate/run/revert`) + `SnakeNamingStrategy`.
 - [x] Subtask 1.3.2: Bucket S3 `momentos-bucket` (sa-east-1) — privado (public access block), CORS p/ localhost:5173, presigned URL testada. SDK `@aws-sdk/client-s3` instalado.
@@ -171,28 +171,29 @@ Decisões:
 ### Task 6 — Álbum do Casal
 - [x] Subtask 6.1: Galeria de fotos no detalhe do evento — `GET /events/:id/photos` (ownership, presigned GET por foto), grid responsivo + lazy load + nome do convidado.
 - [x] Subtask 6.2: Visualização em tela cheia (lightbox com anterior/próxima e crédito do convidado).
-- [ ] Subtask 6.3: Moderação: aprovar/rejeitar/excluir foto.
+- [x] Subtask 6.3: Moderação **pós-publicação** — a foto sempre aparece no álbum e o casal exclui o que não quiser, via lixeira no canto inferior direito de cada foto (`DELETE /events/:id/photos/:photoId`: apaga do S3 e do banco, com confirmação). Aprovar/rejeitar **não** foi feito de propósito: só o casal vê o álbum hoje, então uma fila de aprovação daria trabalho sem proteger ninguém. Revisar quando existir superfície pública — slideshow no telão (9.2) ou álbum público (7.3).
 - [x] Subtask 6.4: Download individual (presigned GET c/ `Content-Disposition: attachment` no lightbox) e download do álbum completo — `GET /events/:id/photos/archive` streama ZIP (archiver, store) direto do S3.
 - [x] Subtask 6.5: Contadores (total de momentos + convidados participantes distintos).
 
 ### Task 7 — Painel / Perfil do Casal
-- [ ] Subtask 7.1: Dashboard com lista de eventos.
+- [x] Subtask 7.1: Dashboard com lista de eventos (plano, status, exclusão com confirmação).
 - [x] Subtask 7.2: Edição de dados do evento — modal "Editar evento" no detalhe (título/data/local) via `PATCH /events/:id`.
 - [ ] Subtask 7.3: Compartilhamento de link do álbum (visualização pública opcional).
+- [x] Subtask 7.4: Tela da conta (`/perfil`) — editar nome e e-mail, trocar senha e pedir o link de recuperação por e-mail. Trocar senha ou e-mail exige a senha atual (`currentPassword` no `PATCH /users/:id`); conta só-Google não tem senha para conferir e a tela vira "criar senha", decidido pelo campo `hasPassword` do `/auth/me`.
 
 ### Task 8 — Qualidade, Segurança e Deploy
-- [ ] Subtask 8.1: Regras de acesso (authorization) — convidado só envia, casal só lê o próprio evento.
+- [x] Subtask 8.1: Regras de acesso (authorization) — convidado só envia (rotas `guest/*` são write-only, autorizadas pelo `public_token`), casal só lê o próprio evento (ownership no use case). Módulo Users fechado: `GET /users` (listava todo mundo) removido, `GET/PATCH/DELETE /users/:id` atrás do `JwtAuthGuard` e restritos à própria conta, com 404 em vez de 403 p/ não vazar existência.
 - [x] Subtask 8.2: Validação de tipo/tamanho de arquivo no upload.
 - [x] Subtask 8.3: Testes unitários dos fluxos críticos (Vitest, `npm test` no backend). E2E com Postgres real ficou para depois.
 - [x] Subtask 8.4: Otimização PWA (offline básico, ícones, manifest).
 - [ ] Subtask 8.5: Deploy de produção + domínio + HTTPS.
 - [x] Subtask 8.6: LGPD: consentimento de uso de imagem e política de privacidade.
-- [ ] Subtask 8.7: Job de exclusão automática das fotos 7 dias após o fim do evento. **A Política de Privacidade já promete esse prazo — precisa existir antes de divulgar o app.**
+- [x] Subtask 8.7: Job de exclusão automática das fotos 7 dias após o fim do evento (`PhotoRetentionJob`: varre no boot e a cada 6h — intervalo, não cron em horário fixo, porque o Render free dorme). Encerramento = fim da janela, ou fim do dia da festa quando não há janela. Apaga por prefixo no S3 (leva junto upload não confirmado), remove as linhas e marca `events.photos_purged_at`, o que torna a varredura idempotente. Mesma promessa fechada nos outros dois pontos: excluir evento agora limpa o storage em **todos** os planos (antes só na degustação) e excluir a conta limpa o storage antes do cascade (antes não limpava nada).
 - [ ] Subtask 8.8: Preencher os dados do controlador (nome, CPF/CNPJ, e-mail) em `PrivacyView.vue` — hoje estão como `[PLACEHOLDER]`.
 
 ### Task 9 — Extras (Backlog / Pós-MVP)
 - [ ] Subtask 9.1: Filtros/molduras estilo polaroid nas fotos.
-- [ ] Subtask 9.2: Slideshow ao vivo projetado na festa (telão).
+- [x] Subtask 9.2: Slideshow ao vivo projetado na festa (telão) — rota pública `/telao/:displayToken`, protegida por um **segundo token** (`events.display_token`), separado do `public_token` do QR: o casal passa o link para o DJ sem entregar a conta, e pode gerar um link novo sem invalidar o QR já impresso. Feed em `GET /display/events/:token?since=` (incremental, p/ não reenviar o álbum inteiro a cada consulta na wi-fi do salão). Foto nova fura a fila com selo "acabou de chegar"; foto apagada pela lixeira some do telão; QR de convite fica na tela para atrair mais convidados. Sem moderação prévia, por decisão de produto (boa fé).
 - [ ] Subtask 9.3: Mensagens/recados dos convidados junto da foto.
 - [ ] Subtask 9.4: Fluxo do plano Memória — seleção de 30 fotos + pedido do álbum físico polaroid.
 - [ ] Subtask 9.5: Notificação ao casal quando álbum atinge X fotos.

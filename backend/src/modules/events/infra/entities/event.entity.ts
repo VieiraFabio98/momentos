@@ -33,6 +33,10 @@ export class EventEntity implements IEvent {
   @Column()
   publicToken: string
 
+  @Index({ unique: true })
+  @Column()
+  displayToken: string
+
   @Column({ type: 'varchar' })
   plan: EventPlan
 
@@ -44,6 +48,10 @@ export class EventEntity implements IEvent {
 
   @Column({ type: 'timestamp', nullable: true })
   expiresAt: Date | null
+
+  @Index()
+  @Column({ type: 'timestamp', nullable: true })
+  photosPurgedAt: Date | null
 
   @CreateDateColumn()
   createdAt: Date

@@ -5,6 +5,11 @@ import { PhotosModule } from '../photos/photos.module'
 import { UsersModule } from '../users/users.module'
 import { CreateEventUseCase } from './application/use-cases/create-event.use-case'
 import { DeleteEventUseCase } from './application/use-cases/delete-event.use-case'
+import { GetDisplayFeedUseCase } from './application/use-cases/get-display-feed.use-case'
+import {
+  GetDisplayLinkUseCase,
+  RotateDisplayTokenUseCase,
+} from './application/use-cases/get-display-link.use-case'
 import { GetEventByPublicTokenUseCase } from './application/use-cases/get-event-by-public-token.use-case'
 import { GetEventQrCodeUseCase } from './application/use-cases/get-event-qrcode.use-case'
 import { GetEventUseCase } from './application/use-cases/get-event.use-case'
@@ -15,6 +20,7 @@ import { EVENT_REPOSITORY } from './domain/repositories/i-event-repository'
 import { EVENT_WRITE_REPOSITORY } from './domain/repositories/i-event-write-repository'
 import { QRCODE_PROVIDER } from './domain/providers/i-qrcode-provider'
 import { EventsController } from './infra/controllers/events.controller'
+import { DisplayController } from './infra/controllers/display.controller'
 import { GuestEventsController } from './infra/controllers/guest-events.controller'
 import { EventEntity } from './infra/entities/event.entity'
 import { QrcodeLibProvider } from './infra/providers/qrcode.provider'
@@ -23,11 +29,13 @@ import { TypeormEventRepository } from './infra/repositories/typeorm-event.repos
 @Module({
   imports: [
     TypeOrmModule.forFeature([EventEntity]),
-    AuthModule,
-    UsersModule,
+    // todo o anel Users → Photos → Events → Auth → Users precisa ser preguiçoso:
+    // qualquer aresta resolvida na decoração pega o módulo ainda indefinido
+    forwardRef(() => AuthModule),
+    forwardRef(() => UsersModule),
     forwardRef(() => PhotosModule),
   ],
-  controllers: [EventsController, GuestEventsController],
+  controllers: [EventsController, GuestEventsController, DisplayController],
   providers: [
     TypeormEventRepository,
     { provide: EVENT_REPOSITORY, useExisting: TypeormEventRepository },
@@ -41,6 +49,9 @@ import { TypeormEventRepository } from './infra/repositories/typeorm-event.repos
     DeleteEventUseCase,
     GetEventQrCodeUseCase,
     GetEventByPublicTokenUseCase,
+    GetDisplayLinkUseCase,
+    RotateDisplayTokenUseCase,
+    GetDisplayFeedUseCase,
   ],
   exports: [EVENT_REPOSITORY, EVENT_READ_REPOSITORY, EVENT_WRITE_REPOSITORY],
 })

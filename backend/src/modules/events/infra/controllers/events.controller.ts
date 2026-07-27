@@ -17,6 +17,10 @@ import { CreateEventDto } from '../../application/dto/create-event.dto'
 import { UpdateEventDto } from '../../application/dto/update-event.dto'
 import { CreateEventUseCase } from '../../application/use-cases/create-event.use-case'
 import { DeleteEventUseCase } from '../../application/use-cases/delete-event.use-case'
+import {
+  GetDisplayLinkUseCase,
+  RotateDisplayTokenUseCase,
+} from '../../application/use-cases/get-display-link.use-case'
 import { GetEventQrCodeUseCase } from '../../application/use-cases/get-event-qrcode.use-case'
 import { GetEventUseCase } from '../../application/use-cases/get-event.use-case'
 import { ListMyEventsUseCase } from '../../application/use-cases/list-my-events.use-case'
@@ -32,7 +36,26 @@ export class EventsController {
     private readonly updateEventUseCase: UpdateEventUseCase,
     private readonly deleteEventUseCase: DeleteEventUseCase,
     private readonly getEventQrCodeUseCase: GetEventQrCodeUseCase,
+    private readonly getDisplayLinkUseCase: GetDisplayLinkUseCase,
+    private readonly rotateDisplayTokenUseCase: RotateDisplayTokenUseCase,
   ) {}
+
+  @Get(':id/display-link')
+  displayLink(
+    @CurrentUser() user: ITokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<HttpResponse> {
+    return this.getDisplayLinkUseCase.execute(user.sub, id)
+  }
+
+  // gera um link novo e derruba o antigo, caso o link vaze
+  @Post(':id/display-link')
+  rotateDisplayLink(
+    @CurrentUser() user: ITokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<HttpResponse> {
+    return this.rotateDisplayTokenUseCase.execute(user.sub, id)
+  }
 
   @Get(':id/qrcode')
   qrCode(

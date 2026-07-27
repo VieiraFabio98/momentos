@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  Delete,
   Get,
   NotFoundException,
   Param,
@@ -13,6 +14,7 @@ import { HttpResponse } from '../../../../shared/helpers'
 import { CurrentUser } from '../../../auth/infra/decorators/current-user.decorator'
 import { ITokenPayload } from '../../../auth/domain/providers/i-token-provider'
 import { JwtAuthGuard } from '../../../auth/infra/guards/jwt-auth.guard'
+import { DeletePhotoUseCase } from '../../application/use-cases/delete-photo.use-case'
 import { DownloadEventAlbumUseCase } from '../../application/use-cases/download-event-album.use-case'
 import { ListEventPhotosUseCase } from '../../application/use-cases/list-event-photos.use-case'
 
@@ -22,6 +24,7 @@ export class EventPhotosController {
   constructor(
     private readonly listEventPhotosUseCase: ListEventPhotosUseCase,
     private readonly downloadEventAlbumUseCase: DownloadEventAlbumUseCase,
+    private readonly deletePhotoUseCase: DeletePhotoUseCase,
   ) {}
 
   @Get()
@@ -30,6 +33,15 @@ export class EventPhotosController {
     @Param('id', ParseUUIDPipe) eventId: string,
   ): Promise<HttpResponse> {
     return this.listEventPhotosUseCase.execute(user.sub, eventId)
+  }
+
+  @Delete(':photoId')
+  remove(
+    @CurrentUser() user: ITokenPayload,
+    @Param('id', ParseUUIDPipe) eventId: string,
+    @Param('photoId', ParseUUIDPipe) photoId: string,
+  ): Promise<HttpResponse> {
+    return this.deletePhotoUseCase.execute(user.sub, eventId, photoId)
   }
 
   @Get('archive')

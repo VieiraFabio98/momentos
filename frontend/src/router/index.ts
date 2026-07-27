@@ -19,6 +19,12 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/perfil',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/events/new',
       name: 'event-create',
       component: () => import('../views/EventCreateView.vue'),
@@ -40,6 +46,12 @@ export const router = createRouter({
       path: '/privacidade',
       name: 'privacy',
       component: () => import('../views/PrivacyView.vue'),
+    },
+    {
+      // telão da festa: sem login, protegido pelo token secreto de exibição
+      path: '/telao/:token',
+      name: 'telao',
+      component: () => import('../views/TelaoView.vue'),
     },
     {
       path: '/e/:token',

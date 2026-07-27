@@ -13,6 +13,10 @@ export class TypeormPhotoRepository implements IPhotoRepository {
     private readonly repository: Repository<PhotoEntity>,
   ) {}
 
+  findById(id: string): Promise<IPhoto | null> {
+    return this.repository.findOneBy({ id })
+  }
+
   findAllByEventId(eventId: string): Promise<IPhoto[]> {
     return this.repository.find({ where: { eventId }, order: { createdAt: 'ASC' } })
   }
@@ -28,5 +32,10 @@ export class TypeormPhotoRepository implements IPhotoRepository {
 
   async delete(id: string): Promise<void> {
     await this.repository.delete(id)
+  }
+
+  async deleteByEventId(eventId: string): Promise<number> {
+    const result = await this.repository.delete({ eventId })
+    return result.affected ?? 0
   }
 }

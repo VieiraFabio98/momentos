@@ -4,6 +4,8 @@ import {
   getMe,
   googleLogin as googleLoginRequest,
   login as loginRequest,
+  updateUser as updateUserRequest,
+  type IUpdateUserData,
   type IUserResponse,
 } from '../services/auth'
 
@@ -33,13 +35,29 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = await getMe()
   }
 
+  async function updateProfile(data: IUpdateUserData) {
+    if (!user.value) {
+      throw new Error('Sessão expirada')
+    }
+    user.value = await updateUserRequest(user.value.id, data)
+  }
+
   function logout() {
     token.value = null
     user.value = null
     localStorage.removeItem(TOKEN_KEY)
   }
 
-  return { token, user, isAuthenticated, login, loginWithGoogle, fetchMe, logout }
+  return {
+    token,
+    user,
+    isAuthenticated,
+    login,
+    loginWithGoogle,
+    fetchMe,
+    updateProfile,
+    logout,
+  }
 })
 
 export function getStoredToken(): string | null {

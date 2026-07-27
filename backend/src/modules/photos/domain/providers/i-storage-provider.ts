@@ -14,4 +14,8 @@ export interface IStorageProvider {
   getObjectStream(key: string): Promise<Readable>
   getObjectMetadata(key: string): Promise<IObjectMetadata | null>
   deleteObjects(keys: string[]): Promise<void>
+  // apaga tudo sob o prefixo e devolve quantos objetos foram removidos. Pega
+  // também o que não tem linha no banco: upload que o cliente concluiu no S3 e
+  // não chegou a confirmar ficaria lá para sempre se fôssemos pelas chaves.
+  deleteByPrefix(prefix: string): Promise<number>
 }

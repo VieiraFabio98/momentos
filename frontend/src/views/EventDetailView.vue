@@ -7,10 +7,13 @@ import AppLoader from '../components/AppLoader.vue'
 import TimeSelect from '../components/TimeSelect.vue'
 import { ApiError } from '../services/api'
 import {
+  deleteEventPhoto,
   downloadEventAlbum,
+  getDisplayLink,
   getEvent,
   getEventQrCode,
   listEventPhotos,
+  rotateDisplayLink,
   updateEvent,
   type IEventAlbum,
   type IEventPhoto,
@@ -48,6 +51,72 @@ function lightboxStep(direction: 1 | -1) {
 function formatDate(isoDate: string) {
   const [year, month, day] = isoDate.split('-')
   return `${day}/${month}/${year}`
+}
+
+// telão da festa: link secreto, separado do QR, que o casal pode trocar
+const displayUrl = ref('')
+const displayCopied = ref(false)
+const rotatingDisplay = ref(false)
+const confirmRotateDisplay = ref(false)
+
+async function copyDisplayLink() {
+  await navigator.clipboard.writeText(displayUrl.value)
+  displayCopied.value = true
+  setTimeout(() => (displayCopied.value = false), 2000)
+}
+
+async function doRotateDisplayLink() {
+  if (!event.value) return
+  confirmRotateDisplay.value = false
+  rotatingDisplay.value = true
+  try {
+    const { displayUrl: novo } = await rotateDisplayLink(event.value.id)
+    displayUrl.value = novo
+  } finally {
+    rotatingDisplay.value = false
+  }
+}
+
+// exclusão de foto do álbum: some do S3 e do banco, não tem como desfazer
+const photoToDelete = ref<IEventPhoto | null>(null)
+const deletingPhotoId = ref<string | null>(null)
+const deletePhotoError = ref('')
+
+function askDeletePhoto(photo: IEventPhoto) {
+  deletePhotoError.value = ''
+  photoToDelete.value = photo
+}
+
+async function confirmDeletePhoto() {
+  const photo = photoToDelete.value
+  if (!photo || !event.value) return
+  photoToDelete.value = null
+  deletingPhotoId.value = photo.id
+
+  try {
+    await deleteEventPhoto(event.value.id, photo.id)
+
+    // recalcula na mão em vez de recarregar o álbum: as URLs das outras fotos
+    // são assinadas e recarregar faria o navegador buscar todas de novo
+    if (album.value) {
+      const restantes = album.value.photos.filter((item) => item.id !== photo.id)
+      album.value = {
+        photos: restantes,
+        total: restantes.length,
+        participants: new Set(
+          restantes.map((item) => item.guestName).filter((name) => name !== null),
+        ).size,
+      }
+    }
+    if (lightbox.value?.id === photo.id) {
+      closeLightbox()
+    }
+  } catch (error) {
+    deletePhotoError.value =
+      error instanceof ApiError ? error.message : 'Não foi possível excluir a foto'
+  } finally {
+    deletingPhotoId.value = null
+  }
 }
 
 // janela de envios (fixa em 16h a partir do início). A data é sempre a do
@@ -163,10 +232,15 @@ onMounted(async () => {
   try {
     event.value = await getEvent(id)
     startTime.value = isoToTimeInput(event.value.opensAt)
-    const [qr, albumData] = await Promise.all([getEventQrCode(id), listEventPhotos(id)])
+    const [qr, albumData, display] = await Promise.all([
+      getEventQrCode(id),
+      listEventPhotos(id),
+      getDisplayLink(id),
+    ])
     qrCode.value = qr.qrCode
     guestLink.value = qr.guestLink
     album.value = albumData
+    displayUrl.value = display.displayUrl
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
       router.push({ name: 'login' })
@@ -255,6 +329,13 @@ onMounted(async () => {
           </p>
 
           <p
+            v-if="deletePhotoError"
+            class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-xs text-red-600"
+          >
+            {{ deletePhotoError }}
+          </p>
+
+          <p
             v-if="!album || album.total === 0"
             class="mt-6 text-center text-sm font-light text-stone-400"
           >
@@ -262,26 +343,53 @@ onMounted(async () => {
           </p>
 
           <div v-else class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <button
+            <div
               v-for="photo in album.photos"
               :key="photo.id"
-              type="button"
               class="group relative aspect-square overflow-hidden rounded-xl bg-ivory-100"
-              @click="openLightbox(photo)"
+              :class="deletingPhotoId === photo.id && 'opacity-40'"
             >
-              <img
-                :src="photo.url"
-                :alt="photo.guestName ? `Foto de ${photo.guestName}` : 'Foto do evento'"
-                loading="lazy"
-                class="h-full w-full object-cover transition group-hover:scale-105"
-              />
-              <span
-                v-if="photo.guestName"
-                class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent px-3 pt-6 pb-2 text-left text-xs text-white"
+              <button type="button" class="block h-full w-full" @click="openLightbox(photo)">
+                <img
+                  :src="photo.url"
+                  :alt="photo.guestName ? `Foto de ${photo.guestName}` : 'Foto do evento'"
+                  loading="lazy"
+                  class="h-full w-full object-cover transition group-hover:scale-105"
+                />
+                <span
+                  v-if="photo.guestName"
+                  class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 to-transparent px-3 pt-6 pb-2 text-left text-xs text-white"
+                >
+                  {{ photo.guestName }}
+                </span>
+              </button>
+
+              <!-- no toque não existe hover: aparece sempre. No mouse, só ao passar
+                   por cima, p/ não poluir o álbum com um ícone em cada foto -->
+              <button
+                type="button"
+                :disabled="deletingPhotoId === photo.id"
+                aria-label="Excluir foto"
+                title="Excluir foto"
+                class="absolute right-2 bottom-2 rounded-md bg-white/85 p-1.5 text-stone-500 backdrop-blur transition hover:bg-white hover:text-red-500 disabled:opacity-40 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
+                @click.stop="askDeletePhoto(photo)"
               >
-                {{ photo.guestName }}
-              </span>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="h-4 w-4"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div> 
 
@@ -317,6 +425,47 @@ onMounted(async () => {
               Baixar QR Code
             </a>
           </div>
+        </div>
+
+        <!-- telão da festa -->
+        <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
+          <h3 class="font-display text-2xl font-medium text-stone-800">Telão da festa</h3>
+          <p class="mx-auto mt-2 max-w-lg text-sm font-light text-stone-500">
+            Abra este link no computador ligado ao projetor. As fotos vão aparecer sozinhas, e a
+            que acabou de chegar fura a fila para o convidado se ver na hora.
+          </p>
+
+          <p class="mt-4 rounded-lg bg-ivory-100 px-4 py-3 text-xs font-light text-stone-600">
+            É um link secreto, diferente do QR das mesas — quem tem ele projeta, mas não entra na
+            sua conta. Pode passar para o DJ ou para o cerimonial sem receio.
+          </p>
+
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <a
+              :href="displayUrl"
+              target="_blank"
+              rel="noopener"
+              class="flex-1 rounded-lg bg-champagne-500 py-2.5 text-center text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
+            >
+              Abrir o telão
+            </a>
+            <button
+              type="button"
+              class="flex-1 rounded-lg border border-stone-200 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+              @click="copyDisplayLink"
+            >
+              {{ displayCopied ? 'Link copiado ✓' : 'Copiar link' }}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            :disabled="rotatingDisplay"
+            class="mt-4 text-xs text-stone-400 underline underline-offset-2 transition hover:text-stone-600 disabled:opacity-50"
+            @click="confirmRotateDisplay = true"
+          >
+            {{ rotatingDisplay ? 'Gerando…' : 'Gerar um link novo' }}
+          </button>
         </div>
 
         <!-- janela de envios -->
@@ -510,6 +659,95 @@ onMounted(async () => {
             </button>
           </div>
         </form>
+      </div>
+    </Transition>
+
+    <!-- trocar o link do telão derruba o que já estiver projetando -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-200"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="confirmRotateDisplay"
+        class="fixed inset-0 z-60 flex items-center justify-center bg-stone-900/20 px-6 backdrop-blur-sm"
+        @click.self="confirmRotateDisplay = false"
+      >
+        <div class="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-xl">
+          <h3 class="font-display text-2xl font-medium text-stone-800">Gerar um link novo?</h3>
+          <p class="mt-2 text-sm font-light text-stone-500">
+            O link atual para de funcionar na hora. Se o telão estiver projetando agora, ele para
+            e você precisa abrir o link novo. O QR das mesas não muda.
+          </p>
+
+          <div class="mt-8 flex gap-3">
+            <button
+              type="button"
+              class="flex-1 rounded-lg border border-stone-200 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+              @click="confirmRotateDisplay = false"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-lg bg-champagne-500 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
+              @click="doRotateDisplayLink"
+            >
+              Gerar novo
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- confirmação de exclusão de foto: sai do álbum e do storage, sem volta -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-200"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="photoToDelete"
+        class="fixed inset-0 z-60 flex items-center justify-center bg-stone-900/20 px-6 backdrop-blur-sm"
+        @click.self="photoToDelete = null"
+      >
+        <div class="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-xl">
+          <img
+            :src="photoToDelete.url"
+            alt=""
+            class="mx-auto h-28 w-28 rounded-xl object-cover"
+          />
+
+          <h3 class="mt-4 font-display text-2xl font-medium text-stone-800">Excluir esta foto?</h3>
+          <p class="mt-2 text-sm font-light text-stone-500">
+            <template v-if="photoToDelete.guestName">
+              O momento enviado por
+              <strong class="font-medium text-stone-600">{{ photoToDelete.guestName }}</strong>
+              sai do álbum para sempre.
+            </template>
+            <template v-else>Este momento sai do álbum para sempre.</template>
+            Essa ação não pode ser desfeita.
+          </p>
+
+          <div class="mt-8 flex gap-3">
+            <button
+              type="button"
+              class="flex-1 rounded-lg border border-stone-200 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+              @click="photoToDelete = null"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-lg bg-red-500 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-red-600"
+              @click="confirmDeletePhoto"
+            >
+              Excluir
+            </button>
+          </div>
+        </div>
       </div>
     </Transition>
 

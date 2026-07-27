@@ -13,7 +13,13 @@ export class GetUserUseCase {
     private readonly userReadRepository: IUserReadRepository,
   ) {}
 
-  async execute(id: string): Promise<HttpResponse> {
+  // 404 (não 403) para conta alheia: o mesmo corpo de resposta de um id
+  // inexistente, então a rota não vira sonda de "esse id existe?"
+  async execute(currentUserId: string, id: string): Promise<HttpResponse> {
+    if (id !== currentUserId) {
+      return notFound('Usuário não encontrado')
+    }
+
     const user = await this.userReadRepository.findById(id)
     if (!user) {
       return notFound('Usuário não encontrado')

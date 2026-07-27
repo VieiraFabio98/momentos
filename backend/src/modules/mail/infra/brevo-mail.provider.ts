@@ -1,16 +1,18 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { IMailMessage, IMailProvider } from '../domain/i-mail-provider'
 
 const BREVO_ENDPOINT = 'https://api.brevo.com/v3/smtp/email'
 
 @Injectable()
-export class BrevoMailProvider implements IMailProvider, OnModuleInit {
+export class BrevoMailProvider implements IMailProvider {
   private readonly logger = new Logger('BrevoMailProvider')
-  private apiKey: string
-  private senderEmail: string
-  private senderName: string
+  private readonly apiKey: string
+  private readonly senderEmail: string
+  private readonly senderName: string
 
-  onModuleInit(): void {
+  // validação no construtor: quem instancia é a factory do MailModule, que só
+  // escolhe esta classe quando a chave existe — falhar aqui é falhar no boot
+  constructor() {
     const apiKey = process.env.BREVO_API_KEY
     if (!apiKey) {
       throw new Error('BREVO_API_KEY precisa estar definida no ambiente')

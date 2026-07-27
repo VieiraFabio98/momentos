@@ -42,6 +42,7 @@ export class CreateEventUseCase {
       eventDate: dto.eventDate,
       plan: dto.plan,
       publicToken: randomBytes(16).toString('hex'),
+      displayToken: randomBytes(16).toString('hex'),
       opensAt,
       expiresAt,
     })

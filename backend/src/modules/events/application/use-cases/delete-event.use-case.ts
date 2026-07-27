@@ -1,10 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { HttpResponse, noContent, notFound } from '../../../../shared/helpers'
 import { STORAGE_PROVIDER, IStorageProvider } from '../../../photos/domain/providers/i-storage-provider'
-import {
-  PHOTO_READ_REPOSITORY,
-  IPhotoReadRepository,
-} from '../../../photos/domain/repositories/i-photo-read-repository'
+import { eventStoragePrefix } from '../../../photos/domain/services/retention'
 import { EVENT_REPOSITORY, IEventRepository } from '../../domain/repositories/i-event-repository'
 
 @Injectable()
@@ -12,8 +9,6 @@ export class DeleteEventUseCase {
   constructor(
     @Inject(EVENT_REPOSITORY)
     private readonly eventRepository: IEventRepository,
-    @Inject(PHOTO_READ_REPOSITORY)
-    private readonly photoReadRepository: IPhotoReadRepository,
     @Inject(STORAGE_PROVIDER)
     private readonly storageProvider: IStorageProvider,
   ) {}
@@ -23,12 +18,12 @@ export class DeleteEventUseCase {
     if (!event || event.userId !== userId) {
       return notFound('Evento não encontrado')
     }
-    if (event.plan === 'degustacao') {
-      const photos = await this.photoReadRepository.findAllByEventId(eventId)
-      if (photos.length > 0) {
-        await this.storageProvider.deleteObjects(photos.map((photo) => photo.storageKey))
-      }
-    }
+
+    // Storage antes do banco, e em qualquer plano: apagar a linha primeiro
+    // levaria junto as chaves das fotos, e nada mais no sistema saberia dizer
+    // onde aqueles objetos estão. Por prefixo, não por chave, para levar também
+    // o que subiu ao bucket sem confirmação.
+    await this.storageProvider.deleteByPrefix(eventStoragePrefix(eventId))
     await this.eventRepository.delete(eventId)
     return noContent()
   }

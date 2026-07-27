@@ -148,54 +148,45 @@ describe('Eventos — ownership do casal', () => {
 
   describe('DeleteEventUseCase', () => {
     it('apaga o evento do próprio casal', async () => {
-      const photos = new FakePhotoRepository()
       const storage = new FakeStorageProvider()
 
-      const response = await new DeleteEventUseCase(events, photos, storage).execute(
-        'user-1',
-        'event-1',
-      )
+      const response = await new DeleteEventUseCase(events, storage).execute('user-1', 'event-1')
 
       expect(response.statusCode).toBe(204)
       expect(events.events.map((event) => event.id)).toEqual(['event-2'])
     })
 
-    it('remove as fotos do storage quando o plano é degustação', async () => {
-      events.events[0].plan = 'degustacao'
-      const photos = new FakePhotoRepository([
-        makePhoto({ id: 'photo-1', storageKey: 'events/event-1/photos/a.jpg' }),
-        makePhoto({ id: 'photo-2', storageKey: 'events/event-1/photos/b.jpg' }),
-      ])
+    // antes só o plano degustação tinha o storage limpo; nos planos pagos as
+    // fotos ficavam órfãs no bucket, sem nenhuma linha apontando para elas
+    it('remove as fotos do storage em qualquer plano', async () => {
       const storage = new FakeStorageProvider()
+      storage.objects.add('events/event-1/photos/a.jpg')
+      storage.objects.add('events/event-1/photos/b.jpg')
 
-      await new DeleteEventUseCase(events, photos, storage).execute('user-1', 'event-1')
+      for (const plan of ['degustacao', 'momento', 'memoria'] as const) {
+        events.events = [makeEvent({ id: 'event-1', userId: 'user-1', plan })]
+        storage.deleted = []
 
-      expect(storage.deleted).toEqual([
-        'events/event-1/photos/a.jpg',
-        'events/event-1/photos/b.jpg',
-      ])
+        await new DeleteEventUseCase(events, storage).execute('user-1', 'event-1')
+
+        expect(storage.deleted.sort(), `plano ${plan}`).toEqual([
+          'events/event-1/photos/a.jpg',
+          'events/event-1/photos/b.jpg',
+        ])
+        storage.objects.add('events/event-1/photos/a.jpg')
+        storage.objects.add('events/event-1/photos/b.jpg')
+      }
     })
 
-    it('mantém as fotos no storage nos planos pagos', async () => {
-      const photos = new FakePhotoRepository([makePhoto()])
+    it('não apaga evento de outro casal, nem mexe no storage dele', async () => {
       const storage = new FakeStorageProvider()
+      storage.objects.add('events/event-2/photos/a.jpg')
 
-      await new DeleteEventUseCase(events, photos, storage).execute('user-1', 'event-1')
-
-      expect(storage.deleted).toHaveLength(0)
-    })
-
-    it('não apaga evento de outro casal', async () => {
-      const storage = new FakeStorageProvider()
-
-      const response = await new DeleteEventUseCase(
-        events,
-        new FakePhotoRepository(),
-        storage,
-      ).execute('user-1', 'event-2')
+      const response = await new DeleteEventUseCase(events, storage).execute('user-1', 'event-2')
 
       expect(response.statusCode).toBe(404)
       expect(events.events).toHaveLength(2)
+      expect(storage.deleted).toHaveLength(0)
     })
   })
 

@@ -16,10 +16,6 @@ export class TypeormUserRepository implements IUserRepository {
     private readonly repository: Repository<UserEntity>,
   ) {}
 
-  findAll(): Promise<IUser[]> {
-    return this.repository.find()
-  }
-
   findById(id: string): Promise<IUser | null> {
     return this.repository.findOneBy({ id })
   }

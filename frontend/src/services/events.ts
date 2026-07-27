@@ -71,6 +71,41 @@ export function listEventPhotos(id: string) {
   return api.get<IEventAlbum>(`/events/${id}/photos`)
 }
 
+export function deleteEventPhoto(eventId: string, photoId: string) {
+  return api.delete(`/events/${eventId}/photos/${photoId}`)
+}
+
+export function getDisplayLink(eventId: string) {
+  return api.get<{ displayUrl: string }>(`/events/${eventId}/display-link`)
+}
+
+export function rotateDisplayLink(eventId: string) {
+  return api.post<{ displayUrl: string }>(`/events/${eventId}/display-link`, {})
+}
+
+export interface IDisplayPhoto {
+  id: string
+  url: string
+  guestName: string | null
+  createdAt: string
+}
+
+export interface IDisplayFeed {
+  title: string
+  total: number
+  // só na carga completa
+  guestLink?: string
+  qrCode?: string
+  // só na consulta incremental: ids que ainda existem, p/ soltar foto apagada
+  photoIds?: string[]
+  photos: IDisplayPhoto[]
+}
+
+export function getDisplayFeed(displayToken: string, since?: string) {
+  const query = since ? `?since=${encodeURIComponent(since)}` : ''
+  return api.get<IDisplayFeed>(`/display/events/${displayToken}${query}`)
+}
+
 export async function downloadEventAlbum(id: string, filename: string) {
   const blob = await api.getBlob(`/events/${id}/photos/archive`)
   const url = URL.createObjectURL(blob)

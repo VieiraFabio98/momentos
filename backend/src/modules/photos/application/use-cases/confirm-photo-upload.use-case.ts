@@ -5,6 +5,7 @@ import {
   IEventReadRepository,
 } from '../../../events/domain/repositories/i-event-read-repository'
 import { IStorageProvider, STORAGE_PROVIDER } from '../../domain/providers/i-storage-provider'
+import { eventPhotosPrefix } from '../../domain/services/retention'
 import {
   IPhotoWriteRepository,
   PHOTO_WRITE_REPOSITORY,
@@ -33,8 +34,7 @@ export class ConfirmPhotoUploadUseCase {
       return notFound('Evento não encontrado')
     }
 
-    const expectedPrefix = `events/${event.id}/photos/`
-    if (!dto.storageKey.startsWith(expectedPrefix)) {
+    if (!dto.storageKey.startsWith(eventPhotosPrefix(event.id))) {
       return badRequest('storageKey não pertence a este evento')
     }
 

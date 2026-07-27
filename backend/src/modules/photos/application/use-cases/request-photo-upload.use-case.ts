@@ -8,6 +8,7 @@ import {
   IEventReadRepository,
 } from '../../../events/domain/repositories/i-event-read-repository'
 import { IStorageProvider, STORAGE_PROVIDER } from '../../domain/providers/i-storage-provider'
+import { photoStorageKey } from '../../domain/services/retention'
 import {
   IPhotoReadRepository,
   PHOTO_READ_REPOSITORY,
@@ -55,7 +56,7 @@ export class RequestPhotoUploadUseCase {
     }
 
     const extension = EXTENSION_BY_TYPE[dto.contentType]
-    const storageKey = `events/${event.id}/photos/${randomUUID()}.${extension}`
+    const storageKey = photoStorageKey(event.id, randomUUID(), extension)
     const uploadUrl = await this.storageProvider.getUploadUrl(
       storageKey,
       dto.contentType,

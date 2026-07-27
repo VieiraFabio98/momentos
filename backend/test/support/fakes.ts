@@ -45,6 +45,26 @@ export class FakeEventRepository implements IEventRepository {
     return this.events.find((event) => event.publicToken === publicToken) ?? null
   }
 
+  async findByDisplayToken(displayToken: string): Promise<IEvent | null> {
+    return this.events.find((event) => event.displayToken === displayToken) ?? null
+  }
+
+  // espelha a regra do repositório real: encerramento é o fim da janela, ou o
+  // fim do dia da festa quando o casal nunca definiu uma
+  async findPendingPhotoPurge(endedBefore: Date, limit: number): Promise<IEvent[]> {
+    return this.events
+      .filter((event) => {
+        if (event.photosPurgedAt !== null) return false
+        const endedAt = event.expiresAt ?? new Date(`${event.eventDate}T00:00:00.000Z`)
+        const deadline = event.expiresAt
+          ? endedAt
+          : new Date(endedAt.getTime() + 24 * 60 * 60 * 1000)
+        return deadline < endedBefore
+      })
+      .sort((a, b) => a.eventDate.localeCompare(b.eventDate))
+      .slice(0, limit)
+  }
+
   async create(data: ICreateEventData): Promise<IEvent> {
     const event = makeEvent({ ...data, id: `event-${this.events.length + 1}` })
     this.events.push(event)
@@ -66,6 +86,10 @@ export class FakeEventRepository implements IEventRepository {
 export class FakePhotoRepository implements IPhotoRepository {
   constructor(public photos: IPhoto[] = []) {}
 
+  async findById(id: string): Promise<IPhoto | null> {
+    return this.photos.find((photo) => photo.id === id) ?? null
+  }
+
   async findAllByEventId(eventId: string): Promise<IPhoto[]> {
     return this.photos.filter((photo) => photo.eventId === eventId)
   }
@@ -83,14 +107,16 @@ export class FakePhotoRepository implements IPhotoRepository {
   async delete(id: string): Promise<void> {
     this.photos = this.photos.filter((photo) => photo.id !== id)
   }
+
+  async deleteByEventId(eventId: string): Promise<number> {
+    const before = this.photos.length
+    this.photos = this.photos.filter((photo) => photo.eventId !== eventId)
+    return before - this.photos.length
+  }
 }
 
 export class FakeUserRepository implements IUserRepository {
   constructor(public users: IUser[] = []) {}
-
-  async findAll(): Promise<IUser[]> {
-    return this.users
-  }
 
   async findById(id: string): Promise<IUser | null> {
     return this.users.find((user) => user.id === id) ?? null
@@ -153,6 +179,9 @@ export class FakePasswordResetTokenRepository implements IPasswordResetTokenRepo
 export class FakeStorageProvider implements IStorageProvider {
   public deleted: string[] = []
   public metadata = new Map<string, IObjectMetadata>()
+  // objetos que "existem" no bucket, p/ exercitar a exclusão por prefixo —
+  // inclusive chaves sem linha no banco, como upload nunca confirmado
+  public objects = new Set<string>()
 
   async getUploadUrl(key: string, contentType: string, size: number): Promise<string> {
     return `https://storage.test/${key}?type=${encodeURIComponent(contentType)}&size=${size}`
@@ -176,6 +205,13 @@ export class FakeStorageProvider implements IStorageProvider {
 
   async deleteObjects(keys: string[]): Promise<void> {
     this.deleted.push(...keys)
+    for (const key of keys) this.objects.delete(key)
+  }
+
+  async deleteByPrefix(prefix: string): Promise<number> {
+    const matching = [...this.objects].filter((key) => key.startsWith(prefix))
+    await this.deleteObjects(matching)
+    return matching.length
   }
 }
 

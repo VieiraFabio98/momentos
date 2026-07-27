@@ -13,4 +13,6 @@ export interface ICreatePhotoData {
 export interface IPhotoWriteRepository {
   create(data: ICreatePhotoData): Promise<IPhoto>
   delete(id: string): Promise<void>
+  // devolve quantas linhas saíram, p/ o job registrar o que de fato apagou
+  deleteByEventId(eventId: string): Promise<number>
 }

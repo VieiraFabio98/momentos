@@ -14,4 +14,11 @@ export class UpdateUserDto {
   @IsString()
   @MinLength(6)
   password?: string
+
+  // prova de posse da conta ao trocar senha ou e-mail; sem MinLength, senão a
+  // regra de tamanho da senha nova vaza p/ a senha antiga de contas legadas
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  currentPassword?: string
 }

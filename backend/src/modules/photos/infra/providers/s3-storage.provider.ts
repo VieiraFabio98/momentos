@@ -3,6 +3,7 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
@@ -85,5 +86,34 @@ export class S3StorageProvider implements IStorageProvider {
         }),
       )
     }
+  }
+
+  async deleteByPrefix(prefix: string): Promise<number> {
+    let deleted = 0
+    let continuationToken: string | undefined
+
+    // o ListObjectsV2 já devolve no máximo 1000 chaves por página, que é
+    // exatamente o teto do DeleteObjects — uma página, uma exclusão
+    do {
+      const listed = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      )
+
+      const keys = (listed.Contents ?? []).map((object) => ({ Key: object.Key! }))
+      if (keys.length > 0) {
+        await this.client.send(
+          new DeleteObjectsCommand({ Bucket: this.bucket, Delete: { Objects: keys } }),
+        )
+        deleted += keys.length
+      }
+
+      continuationToken = listed.IsTruncated ? listed.NextContinuationToken : undefined
+    } while (continuationToken)
+
+    return deleted
   }
 }

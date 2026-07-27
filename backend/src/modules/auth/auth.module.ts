@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { JwtModule, JwtSignOptions } from '@nestjs/jwt'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { UsersModule } from '../users/users.module'
@@ -19,7 +19,7 @@ import { TypeormPasswordResetTokenRepository } from './infra/repositories/typeor
 
 @Module({
   imports: [
-    UsersModule,
+    forwardRef(() => UsersModule),
     TypeOrmModule.forFeature([PasswordResetTokenEntity]),
     JwtModule.registerAsync({
       useFactory: () => {
