@@ -119,51 +119,14 @@ async function confirmDeletePhoto() {
   }
 }
 
-// janela de envios (fixa em 16h a partir do início). A data é sempre a do
-// evento — o casal só escolhe o horário de início.
-const WINDOW_HOURS = 16
-const startTime = ref('')
-const savingWindow = ref(false)
-const windowSaved = ref(false)
-const windowError = ref('')
+// horário de início: os envios abrem aqui e ficam 24h abertos
+const WINDOW_HOURS = 24
 
 function isoToTimeInput(iso: string | null): string {
   if (!iso) return ''
   const date = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
-// combina a data do evento com o horário escolhido, no fuso local
-function buildOpensAt(): Date | null {
-  if (!event.value || !startTime.value) return null
-  return new Date(`${event.value.eventDate}T${startTime.value}`)
-}
-
-const expiresAtDisplay = computed(() => {
-  const opens = buildOpensAt()
-  if (!opens) return ''
-  const expires = new Date(opens.getTime() + WINDOW_HOURS * 60 * 60 * 1000)
-  return expires.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-})
-
-async function saveWindow() {
-  if (!event.value) return
-  savingWindow.value = true
-  windowError.value = ''
-  windowSaved.value = false
-  try {
-    event.value = await updateEvent(event.value.id, {
-      opensAt: buildOpensAt()?.toISOString() ?? null,
-    })
-    windowSaved.value = true
-    setTimeout(() => (windowSaved.value = false), 2000)
-  } catch (error) {
-    windowError.value =
-      error instanceof ApiError ? error.message : 'Não foi possível salvar. Tente novamente.'
-  } finally {
-    savingWindow.value = false
-  }
 }
 
 // download do álbum completo
@@ -188,30 +151,37 @@ async function handleDownloadAlbum() {
 const editing = ref(false)
 const savingEdit = ref(false)
 const editError = ref('')
-const editForm = ref({ title: '', eventDate: '' })
+const editForm = ref({ title: '', eventDate: '', startTime: '' })
 
 function openEdit() {
   if (!event.value) return
   editForm.value = {
     title: event.value.title,
     eventDate: event.value.eventDate,
+    startTime: isoToTimeInput(event.value.opensAt),
   }
   editError.value = ''
   editing.value = true
 }
 
-const dateChangedInEdit = computed(
-  () => !!event.value && editForm.value.eventDate !== event.value.eventDate,
-)
+// fim dos envios previsto a partir da data + horário de início do formulário
+const editExpiresAtDisplay = computed(() => {
+  const { eventDate, startTime } = editForm.value
+  if (!eventDate || !startTime) return ''
+  const opens = new Date(`${eventDate}T${startTime}`)
+  const expires = new Date(opens.getTime() + WINDOW_HOURS * 60 * 60 * 1000)
+  return expires.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+})
 
 async function saveEdit() {
   if (!event.value) return
   savingEdit.value = true
   editError.value = ''
   try {
-    event.value = await updateEvent(event.value.id, { ...editForm.value })
-    // o backend reancora a janela na nova data — reflete isso no formulário
-    startTime.value = isoToTimeInput(event.value.opensAt)
+    const { title, eventDate, startTime } = editForm.value
+    // início dos envios = data da festa + horário escolhido; backend deriva o fim (24h)
+    const opensAt = startTime ? new Date(`${eventDate}T${startTime}`).toISOString() : null
+    event.value = await updateEvent(event.value.id, { title, eventDate, opensAt })
     editing.value = false
   } catch (error) {
     editError.value =
@@ -231,7 +201,6 @@ onMounted(async () => {
   const id = String(route.params.id)
   try {
     event.value = await getEvent(id)
-    startTime.value = isoToTimeInput(event.value.opensAt)
     const [qr, albumData, display] = await Promise.all([
       getEventQrCode(id),
       listEventPhotos(id),
@@ -468,51 +437,6 @@ onMounted(async () => {
           </button>
         </div>
 
-        <!-- janela de envios -->
-        <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
-          <h3 class="font-display text-2xl font-medium text-stone-800">Janela de envios</h3>
-          <p class="mt-2 text-sm font-light text-stone-500">
-            Os envios começam no dia da festa, no horário que você definir. Os convidados têm
-            <strong>16 horas</strong> a partir dele para enviar fotos.
-          </p>
-
-          <div class="mt-6 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                for="opens-at"
-                class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
-              >
-                Início dos envios
-                <span class="font-light text-stone-400">
-                  · {{ event ? formatDate(event.eventDate) : '' }}
-                </span>
-              </label>
-              <TimeSelect id="opens-at" v-model="startTime" />
-            </div>
-            <div>
-              <label class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600">
-                Fim dos envios
-              </label>
-              <div
-                class="w-full rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-500"
-              >
-                {{ expiresAtDisplay || '—' }}
-              </div>
-            </div>
-          </div>
-
-          <p v-if="windowError" class="mt-4 text-sm text-red-500">{{ windowError }}</p>
-
-          <button
-            type="button"
-            :disabled="savingWindow"
-            class="mt-6 rounded-lg bg-champagne-500 px-6 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600 disabled:opacity-60"
-            @click="saveWindow"
-          >
-            {{ savingWindow ? 'Salvando…' : windowSaved ? 'Salvo!' : 'Salvar janela' }}
-          </button>
-        </div>
-
       </template>
     </section>
 
@@ -629,16 +553,22 @@ onMounted(async () => {
                 class="w-full rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 outline-none transition focus:border-champagne-400 focus:ring-2 focus:ring-champagne-300/30"
               />
             </div>
+            <div>
+              <label
+                for="edit-start-time"
+                class="mb-1.5 block text-xs font-medium tracking-wide text-stone-600"
+              >
+                Começa às
+              </label>
+              <TimeSelect id="edit-start-time" v-model="editForm.startTime" required />
+              <p class="mt-2 text-xs font-light text-stone-400">
+                A partir desse horário, os convidados têm <strong>24 horas</strong> para enviar
+                fotos<template v-if="editExpiresAtDisplay">
+                  — até {{ editExpiresAtDisplay }}</template
+                >.
+              </p>
+            </div>
           </div>
-
-          <p
-            v-if="dateChangedInEdit && event?.opensAt"
-            class="mt-4 rounded-lg bg-ivory-100 px-4 py-3 text-xs font-light text-stone-600"
-          >
-            A janela de envios acompanha a nova data, mantendo o horário das
-            <strong class="font-medium">{{ startTime }}</strong
-            >.
-          </p>
 
           <p v-if="editError" class="mt-4 text-sm text-red-500">{{ editError }}</p>
 

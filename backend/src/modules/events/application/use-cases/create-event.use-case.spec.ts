@@ -13,7 +13,12 @@ describe('CreateEventUseCase', () => {
   let mail: FakeMailProvider
   let useCase: CreateEventUseCase
 
-  const dto = { title: 'Ana & João', eventDate: '2026-06-20', plan: 'momento' as const }
+  const dto = {
+    title: 'Ana & João',
+    eventDate: '2026-06-20',
+    plan: 'momento' as const,
+    opensAt: '2026-06-20T18:00:00.000Z',
+  }
 
   beforeEach(() => {
     events = new FakeEventRepository()
@@ -30,13 +35,13 @@ describe('CreateEventUseCase', () => {
     expect(response.data.publicToken).toMatch(/^[0-9a-f]{32}$/)
   })
 
-  it('deriva a janela de 16 horas a partir de opensAt', async () => {
+  it('deriva a janela de 24 horas a partir de opensAt', async () => {
     const response = await useCase.execute('user-1', {
       ...dto,
       opensAt: '2026-06-20T18:00:00.000Z',
     })
 
-    expect(response.data.expiresAt?.toISOString()).toBe('2026-06-21T10:00:00.000Z')
+    expect(response.data.expiresAt?.toISOString()).toBe('2026-06-21T18:00:00.000Z')
   })
 
   it('recusa início de envios fora do dia da festa', async () => {

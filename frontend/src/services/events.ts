@@ -18,8 +18,7 @@ export function createEvent(data: {
   title: string
   eventDate: string
   plan: PlanId
-  opensAt?: string
-  expiresAt?: string
+  opensAt: string
 }) {
   return api.post<IEventResponse>('/events', data)
 }
@@ -39,7 +38,6 @@ export function updateEvent(
     eventDate: string
     plan: PlanId
     opensAt: string | null
-    expiresAt: string | null
   }>,
 ) {
   return api.patch<IEventResponse>(`/events/${id}`, data)

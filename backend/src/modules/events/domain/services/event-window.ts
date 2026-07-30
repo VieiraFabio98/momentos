@@ -2,7 +2,7 @@ import { IEvent } from '../entities/i-event'
 
 export type EventWindowState = 'upcoming' | 'open' | 'closed'
 
-export const EVENT_WINDOW_HOURS = 16
+export const EVENT_WINDOW_HOURS = 24
 
 export function deriveEventWindow(opensAt: Date | null): {
   opensAt: Date | null

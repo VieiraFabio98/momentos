@@ -221,7 +221,7 @@ onBeforeUnmount(() => {
         leave-active-class="transition-opacity duration-1000 ease-out"
         leave-to-class="opacity-0"
       >
-        <div :key="current.id" class="absolute inset-0 flex items-center justify-center">
+        <div :key="current.id" class="absolute inset-0 flex items-center justify-center p-6 sm:p-10">
           <!-- fundo desfocado preenche as sobras de fotos em pé, sem cortar nada -->
           <img
             :src="current.url"
@@ -229,11 +229,24 @@ onBeforeUnmount(() => {
             aria-hidden="true"
             class="absolute inset-0 h-full w-full scale-110 object-cover opacity-25 blur-2xl"
           />
-          <img
-            :src="current.url"
-            :alt="current.guestName ? `Foto de ${current.guestName}` : 'Foto da festa'"
-            class="ken-burns relative max-h-full max-w-full object-contain"
-          />
+          <!-- moldura polaroid: a foto emoldurada, com a assinatura de quem mandou na aba branca -->
+          <figure class="relative bg-white p-3 pb-14 shadow-2xl sm:p-4 sm:pb-16">
+            <div class="overflow-hidden">
+              <img
+                :src="current.url"
+                :alt="current.guestName ? `Foto de ${current.guestName}` : 'Foto da festa'"
+                class="ken-burns block max-h-[76vh] max-w-[84vw] object-contain"
+              />
+            </div>
+            <figcaption
+              v-if="current.guestName"
+              class="absolute inset-x-0 bottom-0 px-4 pb-3 text-center"
+            >
+              <span class="font-signature text-4xl leading-none text-stone-700 sm:text-5xl">
+                {{ current.guestName }}
+              </span>
+            </figcaption>
+          </figure>
         </div>
       </Transition>
 
@@ -247,9 +260,6 @@ onBeforeUnmount(() => {
               Acabou de chegar
             </p>
           </Transition>
-          <p v-if="current.guestName" class="font-display text-3xl font-medium">
-            {{ current.guestName }}
-          </p>
           <p class="text-sm font-light text-white/50">
             {{ total }} {{ total === 1 ? 'momento' : 'momentos' }} · {{ title }}
           </p>

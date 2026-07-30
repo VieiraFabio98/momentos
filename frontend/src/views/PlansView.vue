@@ -64,23 +64,19 @@ function choosePlan(id: PlanId) {
   draft.plan = id
 }
 
-function buildWindow(): { opensAt?: string } {
-  if (!draft.date || !draft.startTime) return {}
-  const opens = new Date(`${draft.date}T${draft.startTime}`)
-  return { opensAt: opens.toISOString() }
-}
-
 async function handleContinue() {
   if (!selected.value) return
 
   loading.value = true
   errorMessage.value = ''
   try {
+    // data + horário de início escolhidos no passo anterior; os envios abrem aqui
+    const opensAt = new Date(`${draft.date}T${draft.startTime}`).toISOString()
     await createEvent({
       title: draft.title,
       eventDate: draft.date,
       plan: selected.value,
-      ...buildWindow(),
+      opensAt,
     })
     draft.reset()
     router.push({ name: 'dashboard' })

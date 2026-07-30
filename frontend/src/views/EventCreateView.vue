@@ -68,7 +68,7 @@ function handleSubmit() {
           <p class="mt-2 text-xs font-light text-stone-400">
             <template v-if="!draft.date">Escolha a data primeiro para definir o horário.</template>
             <template v-else>
-              A partir desse horário, os convidados têm <strong>16 horas</strong> para enviar fotos.
+              A partir desse horário, os convidados têm <strong>24 horas</strong> para enviar fotos.
             </template>
           </p>
         </div>

@@ -8,14 +8,14 @@ import {
 } from './event-window'
 
 describe('deriveEventWindow', () => {
-  it('deriva expiresAt somando a janela de 16 horas', () => {
+  it('deriva expiresAt somando a janela de 24 horas', () => {
     const opensAt = new Date('2026-06-20T18:00:00.000Z')
 
     const window = deriveEventWindow(opensAt)
 
     expect(window.opensAt).toBe(opensAt)
-    expect(window.expiresAt?.toISOString()).toBe('2026-06-21T10:00:00.000Z')
-    expect(EVENT_WINDOW_HOURS).toBe(16)
+    expect(window.expiresAt?.toISOString()).toBe('2026-06-21T18:00:00.000Z')
+    expect(EVENT_WINDOW_HOURS).toBe(24)
   })
 
   it('mantém ambos nulos quando não há abertura definida', () => {
@@ -46,7 +46,7 @@ describe('opensAtMatchesEventDate', () => {
 
 describe('getEventWindowState', () => {
   const opensAt = new Date('2026-06-20T18:00:00.000Z')
-  const expiresAt = new Date('2026-06-21T10:00:00.000Z')
+  const expiresAt = new Date('2026-06-21T18:00:00.000Z')
 
   it('é upcoming antes da abertura', () => {
     const event = makeEvent({ opensAt, expiresAt })

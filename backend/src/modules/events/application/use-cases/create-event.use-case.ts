@@ -29,8 +29,8 @@ export class CreateEventUseCase {
   ) {}
 
   async execute(userId: string, dto: CreateEventDto): Promise<HttpResponse> {
-    const opensAtInput = dto.opensAt ? new Date(dto.opensAt) : null
-    if (opensAtInput && !opensAtMatchesEventDate(opensAtInput, dto.eventDate)) {
+    const opensAtInput = new Date(dto.opensAt)
+    if (!opensAtMatchesEventDate(opensAtInput, dto.eventDate)) {
       return badRequest('O início dos envios deve ser no dia do evento')
     }
 
@@ -61,7 +61,7 @@ export class CreateEventUseCase {
         event.opensAt && event.expiresAt
           ? `<p>Os convidados poderão enviar fotos de
              <strong>${formatDateTime(event.opensAt)}</strong> até
-             <strong>${formatDateTime(event.expiresAt)}</strong> (janela de 16 horas).</p>`
+             <strong>${formatDateTime(event.expiresAt)}</strong> (janela de 24 horas).</p>`
           : ''
 
       await this.mailProvider.send({
