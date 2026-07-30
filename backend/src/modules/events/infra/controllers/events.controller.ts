@@ -24,6 +24,11 @@ import {
 import { GetEventQrCodeUseCase } from '../../application/use-cases/get-event-qrcode.use-case'
 import { GetEventUseCase } from '../../application/use-cases/get-event.use-case'
 import { ListMyEventsUseCase } from '../../application/use-cases/list-my-events.use-case'
+import {
+  GetAlbumLinkUseCase,
+  ReleaseAlbumUseCase,
+  RevokeAlbumUseCase,
+} from '../../application/use-cases/release-album.use-case'
 import { UpdateEventUseCase } from '../../application/use-cases/update-event.use-case'
 
 @Controller('events')
@@ -38,6 +43,9 @@ export class EventsController {
     private readonly getEventQrCodeUseCase: GetEventQrCodeUseCase,
     private readonly getDisplayLinkUseCase: GetDisplayLinkUseCase,
     private readonly rotateDisplayTokenUseCase: RotateDisplayTokenUseCase,
+    private readonly getAlbumLinkUseCase: GetAlbumLinkUseCase,
+    private readonly releaseAlbumUseCase: ReleaseAlbumUseCase,
+    private readonly revokeAlbumUseCase: RevokeAlbumUseCase,
   ) {}
 
   @Get(':id/display-link')
@@ -55,6 +63,32 @@ export class EventsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<HttpResponse> {
     return this.rotateDisplayTokenUseCase.execute(user.sub, id)
+  }
+
+  // link do álbum curado do casal (read-only). GET consulta o estado,
+  // POST libera (idempotente), DELETE revoga (mata o link).
+  @Get(':id/album-link')
+  albumLink(
+    @CurrentUser() user: ITokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<HttpResponse> {
+    return this.getAlbumLinkUseCase.execute(user.sub, id)
+  }
+
+  @Post(':id/album-link')
+  releaseAlbum(
+    @CurrentUser() user: ITokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<HttpResponse> {
+    return this.releaseAlbumUseCase.execute(user.sub, id)
+  }
+
+  @Delete(':id/album-link')
+  revokeAlbum(
+    @CurrentUser() user: ITokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<HttpResponse> {
+    return this.revokeAlbumUseCase.execute(user.sub, id)
   }
 
   @Get(':id/qrcode')

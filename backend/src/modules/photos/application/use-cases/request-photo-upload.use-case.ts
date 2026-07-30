@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
-import { badRequest, forbidden, HttpResponse, notFound, ok } from '../../../../shared/helpers'
-import { EventPlan } from '../../../events/domain/entities/i-event'
+import { forbidden, HttpResponse, notFound, ok } from '../../../../shared/helpers'
 import { getEventWindowState } from '../../../events/domain/services/event-window'
 import {
   EVENT_READ_REPOSITORY,
@@ -9,17 +8,7 @@ import {
 } from '../../../events/domain/repositories/i-event-read-repository'
 import { IStorageProvider, STORAGE_PROVIDER } from '../../domain/providers/i-storage-provider'
 import { photoStorageKey } from '../../domain/services/retention'
-import {
-  IPhotoReadRepository,
-  PHOTO_READ_REPOSITORY,
-} from '../../domain/repositories/i-photo-read-repository'
 import { RequestPhotoUploadDto } from '../dto/request-photo-upload.dto'
-
-const PLAN_PHOTO_LIMITS: Record<EventPlan, number | null> = {
-  degustacao: 30,
-  momento: null,
-  memoria: null,
-}
 
 const EXTENSION_BY_TYPE: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -32,8 +21,6 @@ export class RequestPhotoUploadUseCase {
   constructor(
     @Inject(EVENT_READ_REPOSITORY)
     private readonly eventReadRepository: IEventReadRepository,
-    @Inject(PHOTO_READ_REPOSITORY)
-    private readonly photoReadRepository: IPhotoReadRepository,
     @Inject(STORAGE_PROVIDER)
     private readonly storageProvider: IStorageProvider,
   ) {}
@@ -45,14 +32,6 @@ export class RequestPhotoUploadUseCase {
     }
     if (getEventWindowState(event) !== 'open') {
       return forbidden()
-    }
-
-    const limit = PLAN_PHOTO_LIMITS[event.plan]
-    if (limit !== null) {
-      const count = await this.photoReadRepository.countByEventId(event.id)
-      if (count >= limit) {
-        return badRequest('Limite de fotos do evento atingido')
-      }
     }
 
     const extension = EXTENSION_BY_TYPE[dto.contentType]

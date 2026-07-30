@@ -49,6 +49,10 @@ export class FakeEventRepository implements IEventRepository {
     return this.events.find((event) => event.displayToken === displayToken) ?? null
   }
 
+  async findByAlbumToken(albumToken: string): Promise<IEvent | null> {
+    return this.events.find((event) => event.albumToken === albumToken) ?? null
+  }
+
   // espelha a regra do repositório real: encerramento é o fim da janela, ou o
   // fim do dia da festa quando o casal nunca definiu uma
   async findPendingPhotoPurge(endedBefore: Date, limit: number): Promise<IEvent[]> {

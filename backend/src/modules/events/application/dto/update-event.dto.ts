@@ -1,5 +1,4 @@
-import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator'
-import { EventPlan } from '../../domain/entities/i-event'
+import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 
 export class UpdateEventDto {
   @IsOptional()
@@ -10,10 +9,6 @@ export class UpdateEventDto {
   @IsOptional()
   @IsDateString()
   eventDate?: string
-
-  @IsOptional()
-  @IsIn(['degustacao', 'momento', 'memoria'])
-  plan?: EventPlan
 
   @IsOptional()
   @IsDateString()

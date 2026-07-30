@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
-import { EventPlan, EventStatus, IEvent } from '../../domain/entities/i-event'
+import { EventStatus, IEvent } from '../../domain/entities/i-event'
 import { UserEntity } from '../../../users/infra/entities/user.entity'
 
 @Entity('events')
@@ -37,9 +37,6 @@ export class EventEntity implements IEvent {
   @Column()
   displayToken: string
 
-  @Column({ type: 'varchar' })
-  plan: EventPlan
-
   @Column({ type: 'varchar', default: 'draft' })
   status: EventStatus
 
@@ -52,6 +49,13 @@ export class EventEntity implements IEvent {
   @Index()
   @Column({ type: 'timestamp', nullable: true })
   photosPurgedAt: Date | null
+
+  @Index({ unique: true })
+  @Column({ type: 'varchar', nullable: true })
+  albumToken: string | null
+
+  @Column({ type: 'timestamp', nullable: true })
+  albumReleasedAt: Date | null
 
   @CreateDateColumn()
   createdAt: Date

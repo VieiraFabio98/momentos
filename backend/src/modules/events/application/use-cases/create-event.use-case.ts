@@ -40,7 +40,6 @@ export class CreateEventUseCase {
       userId,
       title: dto.title,
       eventDate: dto.eventDate,
-      plan: dto.plan,
       publicToken: randomBytes(16).toString('hex'),
       displayToken: randomBytes(16).toString('hex'),
       opensAt,

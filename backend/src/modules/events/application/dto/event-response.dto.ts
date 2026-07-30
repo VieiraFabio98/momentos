@@ -1,11 +1,10 @@
-import { EventPlan, EventStatus, IEvent } from '../../domain/entities/i-event'
+import { EventStatus, IEvent } from '../../domain/entities/i-event'
 
 export class EventResponseDto {
   id: string
   title: string
   eventDate: string
   publicToken: string
-  plan: EventPlan
   status: EventStatus
   opensAt: Date | null
   expiresAt: Date | null
@@ -18,7 +17,6 @@ export class EventResponseDto {
     dto.title = event.title
     dto.eventDate = event.eventDate
     dto.publicToken = event.publicToken
-    dto.plan = event.plan
     dto.status = event.status
     dto.opensAt = event.opensAt
     dto.expiresAt = event.expiresAt

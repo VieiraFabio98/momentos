@@ -4,9 +4,11 @@ import {
   getMe,
   googleLogin as googleLoginRequest,
   login as loginRequest,
+  setSubscription as setSubscriptionRequest,
   updateUser as updateUserRequest,
   type IUpdateUserData,
   type IUserResponse,
+  type SubscriptionPlan,
 } from '../services/auth'
 
 const TOKEN_KEY = 'momentos.token'
@@ -42,6 +44,13 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = await updateUserRequest(user.value.id, data)
   }
 
+  async function subscribe(plan: SubscriptionPlan) {
+    if (!user.value) {
+      throw new Error('Sessão expirada')
+    }
+    user.value = await setSubscriptionRequest(user.value.id, plan)
+  }
+
   function logout() {
     token.value = null
     user.value = null
@@ -56,6 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginWithGoogle,
     fetchMe,
     updateProfile,
+    subscribe,
     logout,
   }
 })

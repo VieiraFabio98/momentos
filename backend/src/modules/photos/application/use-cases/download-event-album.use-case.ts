@@ -9,6 +9,7 @@ import {
   IPhotoReadRepository,
   PHOTO_READ_REPOSITORY,
 } from '../../domain/repositories/i-photo-read-repository'
+import { IEvent } from '../../../events/domain/entities/i-event'
 import { photoFilename } from './list-event-photos.use-case'
 
 export interface IAlbumArchive {
@@ -40,13 +41,31 @@ export class DownloadEventAlbumUseCase {
     private readonly storageProvider: IStorageProvider,
   ) {}
 
+  // download do dono (autenticado): valida ownership e monta o ZIP.
   async execute(userId: string, eventId: string): Promise<IAlbumArchive | DownloadAlbumError> {
     const event = await this.eventReadRepository.findById(eventId)
     if (!event || event.userId !== userId) {
       return 'not_found'
     }
 
-    const photos = await this.photoReadRepository.findAllByEventId(eventId)
+    return this.buildArchive(event)
+  }
+
+  // download público do casal: mesmo ZIP, mas autorizado pelo albumToken de um
+  // álbum já liberado. Link não liberado/revogado (albumReleasedAt null) não baixa.
+  async executeByAlbumToken(
+    albumToken: string,
+  ): Promise<IAlbumArchive | DownloadAlbumError> {
+    const event = await this.eventReadRepository.findByAlbumToken(albumToken)
+    if (!event || event.albumReleasedAt === null) {
+      return 'not_found'
+    }
+
+    return this.buildArchive(event)
+  }
+
+  private async buildArchive(event: IEvent): Promise<IAlbumArchive | DownloadAlbumError> {
+    const photos = await this.photoReadRepository.findAllByEventId(event.id)
     if (photos.length === 0) {
       return 'empty'
     }

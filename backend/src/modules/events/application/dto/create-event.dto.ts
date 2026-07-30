@@ -1,5 +1,4 @@
-import { IsDateString, IsIn, IsNotEmpty, IsString } from 'class-validator'
-import { EventPlan } from '../../domain/entities/i-event'
+import { IsDateString, IsNotEmpty, IsString } from 'class-validator'
 
 export class CreateEventDto {
   @IsString()
@@ -8,9 +7,6 @@ export class CreateEventDto {
 
   @IsDateString()
   eventDate: string
-
-  @IsIn(['degustacao', 'momento', 'memoria'])
-  plan: EventPlan
 
   // data e hora em que o evento começa; os envios abrem aqui e ficam 24h abertos
   @IsDateString()

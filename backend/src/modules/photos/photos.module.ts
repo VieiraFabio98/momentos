@@ -5,6 +5,7 @@ import { EventsModule } from '../events/events.module'
 import { ConfirmPhotoUploadUseCase } from './application/use-cases/confirm-photo-upload.use-case'
 import { DeletePhotoUseCase } from './application/use-cases/delete-photo.use-case'
 import { DownloadEventAlbumUseCase } from './application/use-cases/download-event-album.use-case'
+import { GetPublicAlbumUseCase } from './application/use-cases/get-public-album.use-case'
 import { ListEventPhotosUseCase } from './application/use-cases/list-event-photos.use-case'
 import { PurgeExpiredPhotosUseCase } from './application/use-cases/purge-expired-photos.use-case'
 import { PurgeUserPhotosUseCase } from './application/use-cases/purge-user-photos.use-case'
@@ -16,6 +17,7 @@ import { PHOTO_REPOSITORY } from './domain/repositories/i-photo-repository'
 import { PHOTO_WRITE_REPOSITORY } from './domain/repositories/i-photo-write-repository'
 import { EventPhotosController } from './infra/controllers/event-photos.controller'
 import { GuestPhotosController } from './infra/controllers/guest-photos.controller'
+import { PublicAlbumController } from './infra/controllers/public-album.controller'
 import { PhotoEntity } from './infra/entities/photo.entity'
 import { S3StorageProvider } from './infra/providers/s3-storage.provider'
 import { TypeormPhotoRepository } from './infra/repositories/typeorm-photo.repository'
@@ -26,7 +28,7 @@ import { TypeormPhotoRepository } from './infra/repositories/typeorm-photo.repos
     forwardRef(() => EventsModule),
     forwardRef(() => AuthModule),
   ],
-  controllers: [GuestPhotosController, EventPhotosController],
+  controllers: [GuestPhotosController, EventPhotosController, PublicAlbumController],
   providers: [
     TypeormPhotoRepository,
     { provide: PHOTO_REPOSITORY, useExisting: TypeormPhotoRepository },
@@ -37,6 +39,7 @@ import { TypeormPhotoRepository } from './infra/repositories/typeorm-photo.repos
     ConfirmPhotoUploadUseCase,
     ListEventPhotosUseCase,
     DownloadEventAlbumUseCase,
+    GetPublicAlbumUseCase,
     DeletePhotoUseCase,
     PurgeExpiredPhotosUseCase,
     PurgeUserPhotosUseCase,

@@ -32,6 +32,10 @@ export class TypeormEventRepository implements IEventRepository {
     return this.repository.findOneBy({ displayToken })
   }
 
+  findByAlbumToken(albumToken: string): Promise<IEvent | null> {
+    return this.repository.findOneBy({ albumToken })
+  }
+
   // O encerramento é o fim da janela de envios; quando o casal nunca definiu
   // uma janela, cai no fim do dia da festa — senão o álbum ficaria elegível
   // para sempre e nunca seria apagado. A diferença de fuso entre a meia-noite

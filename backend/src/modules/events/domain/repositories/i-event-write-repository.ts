@@ -1,4 +1,4 @@
-import { EventPlan, EventStatus, IEvent } from '../entities/i-event'
+import { EventStatus, IEvent } from '../entities/i-event'
 
 export const EVENT_WRITE_REPOSITORY = Symbol('EVENT_WRITE_REPOSITORY')
 
@@ -8,7 +8,6 @@ export interface ICreateEventData {
   eventDate: string
   publicToken: string
   displayToken: string
-  plan: EventPlan
   opensAt?: Date | null
   expiresAt?: Date | null
 }
@@ -16,12 +15,13 @@ export interface ICreateEventData {
 export interface IUpdateEventData {
   title?: string
   eventDate?: string
-  plan?: EventPlan
   status?: EventStatus
   opensAt?: Date | null
   expiresAt?: Date | null
   photosPurgedAt?: Date | null
   displayToken?: string
+  albumToken?: string | null
+  albumReleasedAt?: Date | null
 }
 
 export interface IEventWriteRepository {

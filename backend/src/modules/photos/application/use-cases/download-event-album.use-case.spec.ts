@@ -15,8 +15,12 @@ describe('DownloadEventAlbumUseCase', () => {
 
   beforeEach(() => {
     events = new FakeEventRepository([
-      makeEvent({ title: 'Ana & João — Casamento' }),
-      makeEvent({ id: 'event-2', userId: 'user-2' }),
+      makeEvent({
+        title: 'Ana & João — Casamento',
+        albumToken: 'album-1',
+        albumReleasedAt: new Date('2026-06-21T00:00:00.000Z'),
+      }),
+      makeEvent({ id: 'event-2', userId: 'user-2', albumToken: 'album-2', albumReleasedAt: null }),
     ])
     photos = new FakePhotoRepository([
       makePhoto({ id: 'p1', storageKey: 'events/event-1/photos/a.jpg' }),
@@ -56,5 +60,19 @@ describe('DownloadEventAlbumUseCase', () => {
 
   it('retorna "not_found" para evento inexistente', async () => {
     expect(await useCase.execute('user-1', 'event-999')).toBe('not_found')
+  })
+
+  it('baixa o álbum público por albumToken liberado', async () => {
+    const result = (await useCase.executeByAlbumToken('album-1')) as IAlbumArchive
+
+    expect(result.filename).toBe('momentos-ana-joao-casamento.zip')
+  })
+
+  it('não baixa por albumToken de álbum não liberado', async () => {
+    expect(await useCase.executeByAlbumToken('album-2')).toBe('not_found')
+  })
+
+  it('não baixa por albumToken inexistente', async () => {
+    expect(await useCase.executeByAlbumToken('nao-existe')).toBe('not_found')
   })
 })

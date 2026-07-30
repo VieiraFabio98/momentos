@@ -99,26 +99,97 @@ guests       (id, event_id, nome?, session_token, created_at)   -- opcional
 
 ---
 
-## 3.1 Monetização (Planos)
+## 3.1 Monetização (Planos) — OBSOLETO (substituído por §3.2)
 
-Cobrança **fixa por evento** (não por foto, não por convidado — foto ilimitada é o argumento de venda). Evento é criado grátis; paga-se para **ativar** o QR Code para os convidados.
+> ⚠️ **Modelo antigo B2C por-evento, descontinuado.** O plano deixou de morar no
+> evento e virou **assinatura da conta** (mensal/anual, §3.2). Degustação/Momento/
+> Memória e o limite de 30 fotos foram removidos do código. Mantido aqui só como
+> registro histórico; o que vale é a §3.2 + a §3.3 (implementação da assinatura).
 
-| Plano | Preço | O que inclui |
-|---|---|---|
-| **Degustação** | R$ 0 | 30 fotos, convidados ilimitados |
-| **Momento** | R$ 29,90 | Fotos e convidados ilimitados, download ZIP |
-| **Memória** | R$ 350,00 | Tudo do Momento + casal seleciona 30 fotos e **recebe álbum físico em casa no estilo polaroid** |
+Modelo antigo (não mais em vigor): cobrança fixa por evento — Degustação R$ 0 (30
+fotos), Momento R$ 29,90, Memória R$ 350 (álbum físico polaroid).
 
-> **Retenção:** em todos os planos as fotos ficam disponíveis por **7 dias após o
+> **Retenção (ainda em vigor):** as fotos ficam disponíveis por **7 dias após o
 > encerramento do evento** e depois são excluídas. É o prazo declarado na Política de
 > Privacidade — mudar aqui exige mudar lá também.
 
-Decisões:
-- Diferenciação por extras, nunca por quantidade de fotos nem por retenção.
-- Degustação serve de marketing: cada festa expõe o app a dezenas de futuros noivos.
-- Gateway sugerido: Mercado Pago (Pix) ou Stripe.
-- Custo de infra por evento (~4 GB S3) < R$ 1 — margem alta em todos os planos.
-- Plano Memória: fluxo pós-evento de seleção de 30 fotos + integração com fornecedor de impressão (a definir).
+---
+
+## 3.3 Monetização B2B — Implementação (EM VIGOR, sem gateway)
+
+Assinatura da cerimonialista mora no **`user`** (`subscription_plan`: `mensal`|`anual`|
+null). Escopo entregue **sem gateway de pagamento** — escolher um plano só grava a
+escolha na conta, sem cobrança nem status de pagamento.
+
+| Plano | Preço | Cobrança |
+|---|---|---|
+| **Mensal** | R$ 49,99 | por mês; eventos ilimitados; pode congelar na baixa (a implementar) |
+| **Anual** | R$ 499 | por ano (~2 meses grátis); preço travado |
+
+O que foi feito:
+- **Backend:** coluna `users.subscription_plan` (migration `AddUserSubscriptionPlan`);
+  `PATCH users/:id/subscription` (`SetSubscriptionUseCase`, ownership, 404 p/ conta
+  alheia); plano exposto em `/auth/me` e nas respostas de usuário.
+- **Evento perdeu `plan`** (migration `DropEventPlan`): DTOs, entity, use-cases e o
+  limite de fotos por evento (`PLAN_PHOTO_LIMITS`/degustação 30) removidos. Todo
+  evento é ilimitado agora. Criar evento não pergunta mais plano.
+- **Frontend:** `PlansView` virou **tela de assinatura da conta** (mensal/anual),
+  fora do fluxo de criar evento, em `/assinatura` (link no dashboard). `EventCreateView`
+  cria o evento direto. Dashboard perdeu o badge de plano; excluir evento agora vale
+  para qualquer evento (antes só degustação).
+
+Ainda em aberto (fases futuras): gateway de pagamento (Mercado Pago/Stripe), gate de
+assinatura ativa para criar evento, congelamento (pausa) com trava, preço anual final.
+
+---
+
+## 3.2 Monetização B2B — Cerimonialistas (EM AVALIAÇÃO / GRELHA)
+
+> Pivô em estudo: em vez de vender por evento ao casal (§3.1), vender **assinatura
+> para cerimonialistas** (wedding planners), que revendem/embutem no serviço delas.
+> Ainda não decidido — decisões abaixo registradas conforme fecham na sessão de grelha.
+
+Decisões fechadas:
+- **Moderação = valor, não fardo.** Cerimonialista aceita revisar fotos porque vira
+  **controle de qualidade** dela — feature de marca ("álbum curado por [nome]") que
+  ela usa p/ justificar o próprio preço ao casal. Não é só filtro de conteúdo impróprio.
+- **Moderação = curadoria via lixeira + gate de liberação (reaproveita código atual).**
+  Álbum mostra todas as fotos na visão da cerimonialista; ela apaga o que não quer pela
+  lixeira (§6.3, já existe). O casal **não** vê ao vivo: só recebe um **link público
+  read-only depois** que ela clica "liberar álbum". Assim o casal só enxerga o resultado
+  curado, cumprindo a promessa de "álbum curado", sem construir fila de aprovação.
+  Pré-filtro IA (nudez/borrão/duplicata marcando duvidosas) fica como **assist futuro
+  opcional** p/ reduzir o trabalho manual — não é pré-requisito do lançamento B2B.
+- **Cobrança: assinatura mensal fixa, eventos ilimitados.** R$ 49,99/mês. Sem taxa
+  por evento e sem cap de eventos — custo de infra/evento < R$ 1, margem aguenta o
+  ilimitado e o pitch fica limpo ("quantos casamentos quiser").
+- **Plano anual** com desconto (~R$ 499/ano ≈ 2 meses grátis) = oferta principal.
+  Trava o ano, receita adiantada, dilui a baixa temporada. Mensal = porta de entrada.
+- **Congelamento (pausa) só no plano mensal**; anual não tem (já diluído). Trava dura:
+  **máx 3 meses de pausa por ano E álbuns ficam read-only enquanto pausado.** Evita
+  virar hospedagem grátis na baixa temporada.
+
+- **Dono do evento = cerimonialista.** Ela cria o evento, modera e entrega. **Casal não
+  cria conta** — recebe álbum via link público read-only. Só o planner loga (auth
+  simplificada). Bate com "álbum curado por [nome da cerimonialista]".
+- **B2B primeiro, B2C (§3.1) congelado.** Foca cerimonialista (paga mais, tem verba)
+  sem apagar o código B2C — que fica dormindo, sem investimento. Reabre B2C se B2B não
+  pegar. Não manter os dois modos ativos ao mesmo tempo (dobraria auth/planos/suporte).
+
+Impacto no que já existe / a construir:
+- **Novo:** gate "liberar álbum" (gera link read-only do casal só após curadoria).
+  ✅ **Implementado** — ver Subtask 6.6.
+- **Novo:** conta/onboarding de cerimonialista + billing de assinatura (mensal/anual +
+  congelamento com trava). Substitui/estende o billing por-evento do §3.1.
+- **Reaproveita:** captura do convidado (Task 5), álbum + lixeira (Task 6), telão (9.2,
+  segue sem moderação), retenção de fotos (8.7).
+- **Marca do planner** no link do casal ("curado por [nome]") — feature de branding leve.
+
+Em aberto (a grelhar depois):
+- Onde a marca da cerimonialista aparece (logo no álbum? no telão? no QR?).
+- Congelamento (pausa) do plano mensal + gateway de pagamento (ver §3.3).
+
+> Implementação da assinatura (sem gateway) já entregue — ver **§3.3**.
 
 ---
 
@@ -145,8 +216,9 @@ Decisões:
 - [x] Subtask 2.7: Proteção de rotas privadas no frontend (guard no Vue Router + store Pinia + token em localStorage + dashboard).
 
 ### Task 3 — Gestão de Evento (Casal)
-- [x] Subtask 3.0: Tela de planos (Degustação / Momento R$29,90 / Memória R$350) + escolha no fluxo de criação (frontend).
-- [ ] Subtask 3.0.1: Integração de pagamento (Mercado Pago/Stripe) para ativar evento.
+- [x] Subtask 3.0: ~~Tela de planos por evento~~ → **substituída** por assinatura da
+  conta (mensal/anual, §3.3). Tela agora é `/assinatura`, fora do fluxo de criar evento.
+- [ ] Subtask 3.0.1: Integração de pagamento (Mercado Pago/Stripe) — assinatura da conta, não por evento. Pendente (modelo atual grava plano sem cobrar).
 - [x] Subtask 3.1: Formulário de criação de evento — título, data, local (frontend, rascunho em store Pinia).
 - [x] Subtask 3.1.1: Módulo Events no backend (entity, migration, CRUD com ownership, `public_token` único gerado na criação, status `draft`) + fluxo frontend persistindo e dashboard listando eventos.
 - [x] Subtask 3.2: Geração do token público + QR Code do evento (`GET /events/:id/qrcode` → dataURL PNG 600px, link `/e/:token`).
@@ -174,6 +246,14 @@ Decisões:
 - [x] Subtask 6.3: Moderação **pós-publicação** — a foto sempre aparece no álbum e o casal exclui o que não quiser, via lixeira no canto inferior direito de cada foto (`DELETE /events/:id/photos/:photoId`: apaga do S3 e do banco, com confirmação). Aprovar/rejeitar **não** foi feito de propósito: só o casal vê o álbum hoje, então uma fila de aprovação daria trabalho sem proteger ninguém. Revisar quando existir superfície pública — slideshow no telão (9.2) ou álbum público (7.3).
 - [x] Subtask 6.4: Download individual (presigned GET c/ `Content-Disposition: attachment` no lightbox) e download do álbum completo — `GET /events/:id/photos/archive` streama ZIP (archiver, store) direto do S3.
 - [x] Subtask 6.5: Contadores (total de momentos + convidados participantes distintos).
+- [x] Subtask 6.6: Liberar álbum curado ao casal (B2B, §3.2). Dono (cerimonialista)
+  cura via lixeira (6.3) e libera um link público read-only: `album_token` +
+  `album_released_at` no evento. `POST/GET/DELETE events/:id/album-link`
+  (liberar idempotente / consultar / revogar) e rota pública sem auth
+  `GET album/events/:albumToken` (+ `/archive` ZIP) que 404 enquanto não liberado.
+  Frontend: card "Álbum do casal" no detalhe + view pública `/album/:token`
+  (galeria read-only, sem lixeira, download). Revogar mata o link; liberar de novo
+  gera token diferente. Não toca billing/plano — funciona por cima do que existe.
 
 ### Task 7 — Painel / Perfil do Casal
 - [x] Subtask 7.1: Dashboard com lista de eventos (plano, status, exclusão com confirmação).

@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
 import { ApiError } from '../services/api'
-import { createEvent } from '../services/events'
-import { useEventDraftStore, type PlanId } from '../stores/event-draft'
+import type { SubscriptionPlan } from '../services/auth'
+import { useAuthStore } from '../stores/auth'
 
 interface IPlan {
-  id: PlanId
+  id: SubscriptionPlan
   name: string
   price: string
   priceNote: string
@@ -18,67 +18,50 @@ interface IPlan {
 
 const plans: IPlan[] = [
   {
-    id: 'degustacao',
-    name: 'Degustação',
-    price: 'Grátis',
-    priceNote: 'para experimentar',
+    id: 'mensal',
+    name: 'Mensal',
+    price: 'R$ 49,99',
+    priceNote: 'por mês',
     highlight: false,
-    features: ['30 fotos', 'Convidados ilimitados', 'Álbum disponível por 7 dias'],
-  },
-  {
-    id: 'momento',
-    name: 'Momento',
-    price: 'R$ 29,90',
-    priceNote: 'por evento',
-    highlight: true,
     features: [
-      'Fotos ilimitadas',
-      'Convidados ilimitados',
-      'Álbum por 6 meses',
-      'Download de todas as fotos (ZIP)',
+      'Eventos ilimitados',
+      'Fotos e convidados ilimitados',
+      'Álbum curado entregue ao casal',
+      'Telão ao vivo na festa',
+      'Pode congelar na baixa temporada',
     ],
   },
   {
-    id: 'memoria',
-    name: 'Memória',
-    price: 'R$ 350',
-    priceNote: 'por evento',
-    highlight: false,
+    id: 'anual',
+    name: 'Anual',
+    price: 'R$ 499',
+    priceNote: 'por ano · 2 meses grátis',
+    highlight: true,
     features: [
-      'Tudo do plano Momento',
-      'Álbum disponível por 2 anos',
-      'Selecione 30 fotos e receba em casa',
-      'Álbum físico no estilo polaroid',
+      'Tudo do plano Mensal',
+      'Economia de ~2 mensalidades',
+      'Preço travado pelo ano todo',
+      'Ideal para quem trabalha o ano inteiro',
     ],
   },
 ]
 
-const draft = useEventDraftStore()
+const auth = useAuthStore()
 const router = useRouter()
-const selected = ref<PlanId | null>(null)
+
+const currentPlan = computed(() => auth.user?.subscriptionPlan ?? null)
+const selected = ref<SubscriptionPlan | null>(currentPlan.value)
 const loading = ref(false)
 const errorMessage = ref('')
 
-function choosePlan(id: PlanId) {
-  selected.value = id
-  draft.plan = id
-}
-
-async function handleContinue() {
+async function handleSubscribe() {
   if (!selected.value) return
 
   loading.value = true
   errorMessage.value = ''
   try {
-    // data + horário de início escolhidos no passo anterior; os envios abrem aqui
-    const opensAt = new Date(`${draft.date}T${draft.startTime}`).toISOString()
-    await createEvent({
-      title: draft.title,
-      eventDate: draft.date,
-      plan: selected.value,
-      opensAt,
-    })
-    draft.reset()
+    // sem gateway: só grava a escolha na conta
+    await auth.subscribe(selected.value)
     router.push({ name: 'dashboard' })
   } catch (error) {
     errorMessage.value =
@@ -93,16 +76,22 @@ async function handleContinue() {
   <main class="min-h-screen bg-ivory-50 pb-16 font-sans">
     <AppHeader />
 
-    <section class="mx-auto max-w-5xl px-6 py-16">
+    <section class="mx-auto max-w-4xl px-6 py-16">
       <header class="mb-12 text-center">
-        <h2 class="font-display text-4xl font-medium text-stone-800">Escolha o plano</h2>
+        <h2 class="font-display text-4xl font-medium text-stone-800">Sua assinatura</h2>
         <p class="mx-auto mt-3 max-w-md text-sm font-light text-stone-500">
-          <template v-if="draft.title">Para “{{ draft.title }}” — </template>
-          fotos ilimitadas dos seus convidados, do jeito que o grande dia merece
+          Uma assinatura, eventos ilimitados. Escolha como prefere pagar.
+        </p>
+        <p
+          v-if="currentPlan"
+          class="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-green-50 px-4 py-1.5 text-xs font-medium text-green-700"
+        >
+          <span class="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+          Plano atual: {{ currentPlan === 'mensal' ? 'Mensal' : 'Anual' }}
         </p>
       </header>
 
-      <div class="grid gap-6 md:grid-cols-3">
+      <div class="grid gap-6 md:grid-cols-2">
         <article
           v-for="plan in plans"
           :key="plan.id"
@@ -114,13 +103,13 @@ async function handleContinue() {
                 ? 'border-champagne-300'
                 : 'border-stone-200 hover:border-champagne-300',
           ]"
-          @click="choosePlan(plan.id)"
+          @click="selected = plan.id"
         >
           <span
             v-if="plan.highlight"
             class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-champagne-500 px-4 py-1 text-xs font-medium text-white"
           >
-            Mais escolhido
+            Melhor custo
           </span>
 
           <h3 class="font-display text-2xl font-medium text-stone-800">{{ plan.name }}</h3>
@@ -165,17 +154,17 @@ async function handleContinue() {
         <button
           type="button"
           class="rounded-lg border border-stone-200 px-8 py-3 text-sm text-stone-600 transition hover:border-stone-300"
-          @click="router.push({ name: 'event-create' })"
+          @click="router.push({ name: 'dashboard' })"
         >
           Voltar
         </button>
         <button
           type="button"
-          :disabled="!selected || loading"
+          :disabled="!selected || selected === currentPlan || loading"
           class="rounded-lg bg-champagne-500 px-8 py-3 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600 disabled:cursor-not-allowed disabled:opacity-50"
-          @click="handleContinue"
+          @click="handleSubscribe"
         >
-          {{ loading ? 'Criando…' : 'Continuar' }}
+          {{ loading ? 'Salvando…' : currentPlan ? 'Trocar plano' : 'Assinar' }}
         </button>
       </div>
     </section>

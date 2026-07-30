@@ -1,12 +1,10 @@
 import { api } from './api'
-import type { PlanId } from '../stores/event-draft'
 
 export interface IEventResponse {
   id: string
   title: string
   eventDate: string
   publicToken: string
-  plan: PlanId
   status: 'draft' | 'active' | 'expired'
   opensAt: string | null
   expiresAt: string | null
@@ -14,12 +12,7 @@ export interface IEventResponse {
   updatedAt: string
 }
 
-export function createEvent(data: {
-  title: string
-  eventDate: string
-  plan: PlanId
-  opensAt: string
-}) {
+export function createEvent(data: { title: string; eventDate: string; opensAt: string }) {
   return api.post<IEventResponse>('/events', data)
 }
 
@@ -36,7 +29,6 @@ export function updateEvent(
   data: Partial<{
     title: string
     eventDate: string
-    plan: PlanId
     opensAt: string | null
   }>,
 ) {
@@ -106,6 +98,49 @@ export function getDisplayFeed(displayToken: string, since?: string) {
 
 export async function downloadEventAlbum(id: string, filename: string) {
   const blob = await api.getBlob(`/events/${id}/photos/archive`)
+  triggerDownload(blob, filename)
+}
+
+// --- Álbum curado do casal (link público read-only) ---
+
+export interface IAlbumLink {
+  released: boolean
+  albumUrl: string | null
+  releasedAt: string | null
+}
+
+export function getAlbumLink(eventId: string) {
+  return api.get<IAlbumLink>(`/events/${eventId}/album-link`)
+}
+
+export function releaseAlbum(eventId: string) {
+  return api.post<IAlbumLink>(`/events/${eventId}/album-link`, {})
+}
+
+export function revokeAlbum(eventId: string) {
+  return api.delete<IAlbumLink>(`/events/${eventId}/album-link`)
+}
+
+export interface IPublicAlbum {
+  title: string
+  eventDate: string
+  releasedAt: string
+  total: number
+  participants: number
+  photos: IEventPhoto[]
+}
+
+// rota pública, sem auth: quem tem o albumToken (o casal) vê o álbum curado
+export function getPublicAlbum(albumToken: string) {
+  return api.get<IPublicAlbum>(`/album/events/${albumToken}`)
+}
+
+export async function downloadPublicAlbum(albumToken: string, filename: string) {
+  const blob = await api.getBlob(`/album/events/${albumToken}/archive`)
+  triggerDownload(blob, filename)
+}
+
+function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url

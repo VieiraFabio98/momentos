@@ -156,26 +156,20 @@ describe('Eventos — ownership do casal', () => {
       expect(events.events.map((event) => event.id)).toEqual(['event-2'])
     })
 
-    // antes só o plano degustação tinha o storage limpo; nos planos pagos as
-    // fotos ficavam órfãs no bucket, sem nenhuma linha apontando para elas
-    it('remove as fotos do storage em qualquer plano', async () => {
+    // excluir o evento limpa o storage — antes as fotos ficavam órfãs no bucket
+    it('remove as fotos do storage ao excluir o evento', async () => {
       const storage = new FakeStorageProvider()
       storage.objects.add('events/event-1/photos/a.jpg')
       storage.objects.add('events/event-1/photos/b.jpg')
 
-      for (const plan of ['degustacao', 'momento', 'memoria'] as const) {
-        events.events = [makeEvent({ id: 'event-1', userId: 'user-1', plan })]
-        storage.deleted = []
+      events.events = [makeEvent({ id: 'event-1', userId: 'user-1' })]
 
-        await new DeleteEventUseCase(events, storage).execute('user-1', 'event-1')
+      await new DeleteEventUseCase(events, storage).execute('user-1', 'event-1')
 
-        expect(storage.deleted.sort(), `plano ${plan}`).toEqual([
-          'events/event-1/photos/a.jpg',
-          'events/event-1/photos/b.jpg',
-        ])
-        storage.objects.add('events/event-1/photos/a.jpg')
-        storage.objects.add('events/event-1/photos/b.jpg')
-      }
+      expect(storage.deleted.sort()).toEqual([
+        'events/event-1/photos/a.jpg',
+        'events/event-1/photos/b.jpg',
+      ])
     })
 
     it('não apaga evento de outro casal, nem mexe no storage dele', async () => {

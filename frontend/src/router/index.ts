@@ -31,8 +31,9 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/events/new/plans',
-      name: 'plans',
+      // assinatura da conta (mensal/anual) — não é mais passo de criar evento
+      path: '/assinatura',
+      name: 'subscription',
       component: () => import('../views/PlansView.vue'),
       meta: { requiresAuth: true },
     },
@@ -52,6 +53,13 @@ export const router = createRouter({
       path: '/telao/:token',
       name: 'telao',
       component: () => import('../views/TelaoView.vue'),
+    },
+    {
+      // álbum curado do casal: sem login, protegido pelo albumToken que a
+      // cerimonialista libera (e pode revogar) depois de curar as fotos
+      path: '/album/:token',
+      name: 'album',
+      component: () => import('../views/AlbumView.vue'),
     },
     {
       path: '/e/:token',

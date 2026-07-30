@@ -16,7 +16,6 @@ describe('CreateEventUseCase', () => {
   const dto = {
     title: 'Ana & João',
     eventDate: '2026-06-20',
-    plan: 'momento' as const,
     opensAt: '2026-06-20T18:00:00.000Z',
   }
 

@@ -1,11 +1,15 @@
 import { api } from './api'
 
+export type SubscriptionPlan = 'mensal' | 'anual'
+
 export interface IUserResponse {
   id: string
   name: string
   email: string
   // false em conta criada só pelo Google: não há senha atual para conferir
   hasPassword: boolean
+  // plano de assinatura da conta; null enquanto não assinou. Sem cobrança ainda.
+  subscriptionPlan: SubscriptionPlan | null
   createdAt: string
   updatedAt: string
 }
@@ -40,4 +44,8 @@ export function requestPasswordRecovery(email: string) {
 
 export function updateUser(id: string, data: IUpdateUserData) {
   return api.patch<IUserResponse>(`/users/${id}`, data)
+}
+
+export function setSubscription(id: string, plan: SubscriptionPlan) {
+  return api.patch<IUserResponse>(`/users/${id}/subscription`, { plan })
 }

@@ -13,12 +13,6 @@ const router = useRouter()
 const loading = ref(true)
 const events = ref<IEventResponse[]>([])
 
-const planLabels: Record<string, string> = {
-  degustacao: 'Degustação',
-  momento: 'Momento',
-  memoria: 'Memória',
-}
-
 const statusLabels: Record<string, { text: string; classes: string }> = {
   draft: { text: 'Aguardando ativação', classes: 'bg-amber-50 text-amber-700' },
   active: { text: 'Ativo', classes: 'bg-emerald-50 text-emerald-700' },
@@ -93,14 +87,23 @@ onMounted(async () => {
 
       <template v-else>
         <div class="mb-8 flex items-center justify-between">
-          <h2 class="font-display text-3xl font-medium text-stone-800">Seu evento</h2>
-          <button
-            type="button"
-            class="rounded-lg bg-champagne-500 px-6 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
-            @click="router.push({ name: 'event-create' })"
-          >
-            Criar evento
-          </button>
+          <h2 class="font-display text-3xl font-medium text-stone-800">Seus eventos</h2>
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="rounded-lg border border-champagne-400 px-6 py-2.5 text-sm font-medium text-champagne-600 transition hover:bg-champagne-500 hover:text-white"
+              @click="router.push({ name: 'subscription' })"
+            >
+              Assinatura
+            </button>
+            <button
+              type="button"
+              class="rounded-lg bg-champagne-500 px-6 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
+              @click="router.push({ name: 'event-create' })"
+            >
+              Criar evento
+            </button>
+          </div>
         </div>
 
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -125,14 +128,9 @@ onMounted(async () => {
                 <span class="text-champagne-500">✦</span>
                 {{ formatDate(event.eventDate) }}
               </div>
-              <div class="flex items-center gap-2">
-                <span class="text-champagne-500">✦</span>
-                Plano {{ planLabels[event.plan] ?? event.plan }}
-              </div>
             </dl>
 
             <button
-              v-if="event.plan === 'degustacao'"
               type="button"
               :disabled="deletingId === event.id"
               aria-label="Excluir evento"

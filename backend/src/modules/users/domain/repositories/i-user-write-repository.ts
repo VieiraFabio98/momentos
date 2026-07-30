@@ -1,4 +1,4 @@
-import { IUser } from '../entities/i-user'
+import { IUser, SubscriptionPlan } from '../entities/i-user'
 
 export const USER_WRITE_REPOSITORY = Symbol('USER_WRITE_REPOSITORY')
 
@@ -12,6 +12,7 @@ export interface IUpdateUserData {
   name?: string
   email?: string
   passwordHash?: string
+  subscriptionPlan?: SubscriptionPlan | null
 }
 
 export interface IUserWriteRepository {

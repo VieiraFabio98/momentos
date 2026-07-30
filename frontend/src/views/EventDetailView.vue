@@ -9,12 +9,16 @@ import { ApiError } from '../services/api'
 import {
   deleteEventPhoto,
   downloadEventAlbum,
+  getAlbumLink,
   getDisplayLink,
   getEvent,
   getEventQrCode,
   listEventPhotos,
+  releaseAlbum,
+  revokeAlbum,
   rotateDisplayLink,
   updateEvent,
+  type IAlbumLink,
   type IEventAlbum,
   type IEventPhoto,
   type IEventResponse,
@@ -74,6 +78,40 @@ async function doRotateDisplayLink() {
     displayUrl.value = novo
   } finally {
     rotatingDisplay.value = false
+  }
+}
+
+// álbum curado do casal: link público read-only, liberado só depois da curadoria
+const albumLink = ref<IAlbumLink>({ released: false, albumUrl: null, releasedAt: null })
+const releasingAlbum = ref(false)
+const albumCopied = ref(false)
+const confirmRevokeAlbum = ref(false)
+
+async function copyAlbumLink() {
+  if (!albumLink.value.albumUrl) return
+  await navigator.clipboard.writeText(albumLink.value.albumUrl)
+  albumCopied.value = true
+  setTimeout(() => (albumCopied.value = false), 2000)
+}
+
+async function doReleaseAlbum() {
+  if (!event.value) return
+  releasingAlbum.value = true
+  try {
+    albumLink.value = await releaseAlbum(event.value.id)
+  } finally {
+    releasingAlbum.value = false
+  }
+}
+
+async function doRevokeAlbum() {
+  if (!event.value) return
+  confirmRevokeAlbum.value = false
+  releasingAlbum.value = true
+  try {
+    albumLink.value = await revokeAlbum(event.value.id)
+  } finally {
+    releasingAlbum.value = false
   }
 }
 
@@ -201,15 +239,17 @@ onMounted(async () => {
   const id = String(route.params.id)
   try {
     event.value = await getEvent(id)
-    const [qr, albumData, display] = await Promise.all([
+    const [qr, albumData, display, albumLinkData] = await Promise.all([
       getEventQrCode(id),
       listEventPhotos(id),
       getDisplayLink(id),
+      getAlbumLink(id),
     ])
     qrCode.value = qr.qrCode
     guestLink.value = qr.guestLink
     album.value = albumData
     displayUrl.value = display.displayUrl
+    albumLink.value = albumLinkData
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
       router.push({ name: 'login' })
@@ -437,6 +477,70 @@ onMounted(async () => {
           </button>
         </div>
 
+        <!-- álbum curado do casal -->
+        <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
+          <h3 class="font-display text-2xl font-medium text-stone-800">Álbum do casal</h3>
+          <p class="mx-auto mt-2 max-w-lg text-sm font-light text-stone-500">
+            Depois de revisar as fotos acima e tirar o que não quiser, libere o álbum curado
+            para o casal. Eles recebem um link só de visualização — não entram na sua conta e
+            não editam nada.
+          </p>
+
+          <!-- ainda não liberado -->
+          <template v-if="!albumLink.released">
+            <p class="mt-4 rounded-lg bg-ivory-100 px-4 py-3 text-xs font-light text-stone-600">
+              O casal só vê o álbum depois que você liberar. Enquanto isso, a curadoria fica só
+              com você.
+            </p>
+            <button
+              type="button"
+              :disabled="releasingAlbum"
+              class="mt-6 w-full rounded-lg bg-champagne-500 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600 disabled:opacity-60 sm:w-auto sm:px-8"
+              @click="doReleaseAlbum"
+            >
+              {{ releasingAlbum ? 'Liberando…' : 'Liberar álbum para o casal' }}
+            </button>
+          </template>
+
+          <!-- já liberado -->
+          <template v-else>
+            <p
+              class="mt-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-xs font-medium text-green-700"
+            >
+              <span class="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+              Álbum liberado — o casal já pode acessar por este link.
+            </p>
+            <p class="mt-3 break-all text-xs text-stone-400">{{ albumLink.albumUrl }}</p>
+
+            <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+              <a
+                :href="albumLink.albumUrl!"
+                target="_blank"
+                rel="noopener"
+                class="flex-1 rounded-lg bg-champagne-500 py-2.5 text-center text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
+              >
+                Abrir o álbum
+              </a>
+              <button
+                type="button"
+                class="flex-1 rounded-lg border border-stone-200 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+                @click="copyAlbumLink"
+              >
+                {{ albumCopied ? 'Link copiado ✓' : 'Copiar link' }}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              :disabled="releasingAlbum"
+              class="mt-4 text-xs text-stone-400 underline underline-offset-2 transition hover:text-stone-600 disabled:opacity-50"
+              @click="confirmRevokeAlbum = true"
+            >
+              {{ releasingAlbum ? 'Processando…' : 'Revogar o link do casal' }}
+            </button>
+          </template>
+        </div>
+
       </template>
     </section>
 
@@ -625,6 +729,45 @@ onMounted(async () => {
               @click="doRotateDisplayLink"
             >
               Gerar novo
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- revogar o link do casal: mata o link atual; liberar de novo gera outro -->
+    <Transition
+      enter-active-class="transition-opacity duration-200"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-200"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="confirmRevokeAlbum"
+        class="fixed inset-0 z-60 flex items-center justify-center bg-stone-900/20 px-6 backdrop-blur-sm"
+        @click.self="confirmRevokeAlbum = false"
+      >
+        <div class="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-xl">
+          <h3 class="font-display text-2xl font-medium text-stone-800">Revogar o link?</h3>
+          <p class="mt-2 text-sm font-light text-stone-500">
+            O link atual para de funcionar na hora e o casal deixa de ver o álbum. Se liberar de
+            novo depois, o link será diferente.
+          </p>
+
+          <div class="mt-8 flex gap-3">
+            <button
+              type="button"
+              class="flex-1 rounded-lg border border-stone-200 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+              @click="confirmRevokeAlbum = false"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-lg bg-red-500 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-red-600"
+              @click="doRevokeAlbum"
+            >
+              Revogar
             </button>
           </div>
         </div>

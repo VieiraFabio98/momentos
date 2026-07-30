@@ -14,6 +14,11 @@ import { GetEventByPublicTokenUseCase } from './application/use-cases/get-event-
 import { GetEventQrCodeUseCase } from './application/use-cases/get-event-qrcode.use-case'
 import { GetEventUseCase } from './application/use-cases/get-event.use-case'
 import { ListMyEventsUseCase } from './application/use-cases/list-my-events.use-case'
+import {
+  GetAlbumLinkUseCase,
+  ReleaseAlbumUseCase,
+  RevokeAlbumUseCase,
+} from './application/use-cases/release-album.use-case'
 import { UpdateEventUseCase } from './application/use-cases/update-event.use-case'
 import { EVENT_READ_REPOSITORY } from './domain/repositories/i-event-read-repository'
 import { EVENT_REPOSITORY } from './domain/repositories/i-event-repository'
@@ -52,6 +57,9 @@ import { TypeormEventRepository } from './infra/repositories/typeorm-event.repos
     GetDisplayLinkUseCase,
     RotateDisplayTokenUseCase,
     GetDisplayFeedUseCase,
+    GetAlbumLinkUseCase,
+    ReleaseAlbumUseCase,
+    RevokeAlbumUseCase,
   ],
   exports: [EVENT_REPOSITORY, EVENT_READ_REPOSITORY, EVENT_WRITE_REPOSITORY],
 })

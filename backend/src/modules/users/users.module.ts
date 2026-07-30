@@ -9,6 +9,7 @@ import { USER_WRITE_REPOSITORY } from './domain/repositories/i-user-write-reposi
 import { CreateUserUseCase } from './application/use-cases/create-user.use-case'
 import { DeleteUserUseCase } from './application/use-cases/delete-user.use-case'
 import { GetUserUseCase } from './application/use-cases/get-user.use-case'
+import { SetSubscriptionUseCase } from './application/use-cases/set-subscription.use-case'
 import { UpdateUserUseCase } from './application/use-cases/update-user.use-case'
 import { UsersController } from './infra/controllers/users.controller'
 import { UserEntity } from './infra/entities/user.entity'
@@ -36,6 +37,7 @@ import { TypeormUserRepository } from './infra/repositories/typeorm-user.reposit
     GetUserUseCase,
     UpdateUserUseCase,
     DeleteUserUseCase,
+    SetSubscriptionUseCase,
   ],
   exports: [USER_REPOSITORY, USER_READ_REPOSITORY, USER_WRITE_REPOSITORY, HASH_PROVIDER],
 })

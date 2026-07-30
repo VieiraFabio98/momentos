@@ -52,7 +52,6 @@ export class UpdateEventUseCase {
     const updated = await this.eventRepository.update(eventId, {
       title: dto.title,
       eventDate: dto.eventDate,
-      plan: dto.plan,
       opensAt,
       expiresAt,
     })
