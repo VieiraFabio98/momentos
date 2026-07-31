@@ -91,11 +91,13 @@ async function handleSubscribe() {
         </p>
       </header>
 
-      <div class="grid gap-6 md:grid-cols-2">
+      <div
+        class="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-4 md:mx-0 md:gap-6 md:overflow-visible md:px-0 md:pb-0"
+      >
         <article
           v-for="plan in plans"
           :key="plan.id"
-          class="relative flex cursor-pointer flex-col rounded-2xl border bg-white p-8 transition"
+          class="relative flex w-[80%] shrink-0 cursor-pointer snap-center flex-col rounded-2xl border bg-white p-8 transition sm:w-[65%] md:w-auto md:flex-1 md:shrink"
           :class="[
             selected === plan.id
               ? 'border-champagne-500 ring-2 ring-champagne-300/40'
