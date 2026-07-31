@@ -14,8 +14,6 @@ const router = useRouter()
 const loading = ref(true)
 
 const name = ref('')
-const email = ref('')
-const dataPassword = ref('')
 const savingData = ref(false)
 const dataError = ref('')
 const dataSuccess = ref('')
@@ -33,15 +31,11 @@ const recoveryMessage = ref('')
 // conta criada pelo Google ainda não tem senha: não há o que conferir, e a
 // seção de senha vira "criar senha" em vez de "alterar senha"
 const hasPassword = computed(() => auth.user?.hasPassword ?? true)
-const emailChanged = computed(() => email.value.trim() !== (auth.user?.email ?? ''))
 const nameChanged = computed(() => name.value.trim() !== (auth.user?.name ?? ''))
-// o backend só cobra a senha atual quando o e-mail muda; trocar o nome é livre
-const needsPasswordForData = computed(() => emailChanged.value && hasPassword.value)
+const currentPlan = computed(() => auth.user?.subscriptionPlan ?? null)
 
 function resetDataForm() {
   name.value = auth.user?.name ?? ''
-  email.value = auth.user?.email ?? ''
-  dataPassword.value = ''
 }
 
 function handleUnauthorized() {
@@ -66,14 +60,9 @@ onMounted(async () => {
   }
 })
 
-// some com o aviso de senha ao desfazer a troca de e-mail
-watch(emailChanged, (changed) => {
-  if (!changed) dataPassword.value = ''
-})
-
 // mensagem de sucesso não pode ficar pendurada sobre um formulário já mexido de
 // novo: quem lê "Dados atualizados" enquanto digita acha que salvou sozinho
-watch([name, email], () => {
+watch(name, () => {
   dataSuccess.value = ''
   dataError.value = ''
 })
@@ -87,19 +76,14 @@ async function saveData() {
   dataError.value = ''
   dataSuccess.value = ''
 
-  if (!nameChanged.value && !emailChanged.value) {
+  if (!nameChanged.value) {
     dataError.value = 'Nada foi alterado'
     return
   }
 
   savingData.value = true
   try {
-    await auth.updateProfile({
-      ...(nameChanged.value ? { name: name.value.trim() } : {}),
-      ...(emailChanged.value ? { email: email.value.trim() } : {}),
-      ...(needsPasswordForData.value ? { currentPassword: dataPassword.value } : {}),
-    })
-    dataPassword.value = ''
+    await auth.updateProfile({ name: name.value.trim() })
     dataSuccess.value = 'Dados atualizados'
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
@@ -216,28 +200,15 @@ const labelClasses = 'mb-1.5 block text-xs font-medium tracking-wide text-stone-
               <label for="profile-email" :class="labelClasses">E-mail</label>
               <input
                 id="profile-email"
-                v-model="email"
+                :value="auth.user?.email"
                 type="email"
-                required
+                readonly
+                disabled
                 autocomplete="email"
-                :class="inputClasses"
-              />
-            </div>
-
-            <div v-if="needsPasswordForData">
-              <label for="profile-data-password" :class="labelClasses">Senha atual</label>
-              <input
-                id="profile-data-password"
-                v-model="dataPassword"
-                type="password"
-                required
-                autocomplete="current-password"
-                placeholder="••••••••"
-                :class="inputClasses"
+                :class="[inputClasses, 'cursor-not-allowed bg-stone-50 text-stone-400']"
               />
               <p class="mt-1.5 text-xs font-light text-stone-500">
-                Trocar o e-mail muda para onde vai o link de recuperação, então pedimos sua senha
-                para confirmar que é você.
+                O e-mail não pode ser alterado — é por ele que enviamos avisos e recuperação de senha.
               </p>
             </div>
           </div>
@@ -255,7 +226,7 @@ const labelClasses = 'mb-1.5 block text-xs font-medium tracking-wide text-stone-
           <div class="mt-8 flex gap-3">
             <button
               type="button"
-              :disabled="savingData || (!nameChanged && !emailChanged)"
+              :disabled="savingData || !nameChanged"
               class="flex-1 rounded-lg border border-stone-200 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 disabled:opacity-40"
               @click="resetDataForm"
             >
@@ -263,7 +234,7 @@ const labelClasses = 'mb-1.5 block text-xs font-medium tracking-wide text-stone-
             </button>
             <button
               type="submit"
-              :disabled="savingData || (!nameChanged && !emailChanged)"
+              :disabled="savingData || !nameChanged"
               class="flex-1 rounded-lg bg-champagne-500 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {{ savingData ? 'Salvando…' : 'Salvar' }}
@@ -366,6 +337,40 @@ const labelClasses = 'mb-1.5 block text-xs font-medium tracking-wide text-stone-
             </p>
           </div>
         </form>
+
+        <!-- assinatura -->
+        <div class="mt-8 rounded-2xl border border-stone-200 bg-white p-8">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h3 class="font-display text-2xl font-medium text-stone-800">Assinatura</h3>
+              <p class="mt-1 text-sm font-light text-stone-500">
+                <template v-if="currentPlan">
+                  Seu plano atual é
+                  <span class="font-medium text-stone-700">{{
+                    currentPlan === 'mensal' ? 'Mensal' : 'Anual'
+                  }}</span
+                  >.
+                </template>
+                <template v-else> Você ainda não tem um plano ativo. </template>
+              </p>
+            </div>
+            <span
+              v-if="currentPlan"
+              class="inline-flex shrink-0 items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700"
+            >
+              <span class="inline-block h-2 w-2 rounded-full bg-green-500"></span>
+              Ativo
+            </span>
+          </div>
+
+          <button
+            type="button"
+            class="mt-6 w-full rounded-lg bg-champagne-500 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
+            @click="router.push({ name: 'subscription' })"
+          >
+            {{ currentPlan ? 'Gerenciar assinatura' : 'Ver planos' }}
+          </button>
+        </div>
       </template>
     </section>
 

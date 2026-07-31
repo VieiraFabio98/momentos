@@ -37,6 +37,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: '/index.html',
+        // apaga os assets do deploy anterior quando o SW novo assume; sem isso o
+        // index velho fica em cache apontando para chunks que já não existem
+        cleanupOutdatedCaches: true,
         // fotos e chamadas de API ficam fora do cache: as URLs do S3 são
         // assinadas e expiram, e o álbum precisa refletir o que já foi enviado
         runtimeCaching: [

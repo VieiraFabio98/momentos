@@ -1,4 +1,4 @@
-import { IUser, SubscriptionPlan } from '../../domain/entities/i-user'
+import { IUser, SubscriptionPlan, UserRole } from '../../domain/entities/i-user'
 
 export class UserResponseDto {
   id: string
@@ -8,6 +8,8 @@ export class UserResponseDto {
   // ela deve pedir a senha atual ou oferecer "criar senha". Nunca expõe o hash.
   hasPassword: boolean
   subscriptionPlan: SubscriptionPlan | null
+  // admin cria eventos sem assinatura ativa; o front usa isso p/ não cobrar plano.
+  role: UserRole
   createdAt: Date
   updatedAt: Date
 
@@ -18,6 +20,7 @@ export class UserResponseDto {
     dto.email = user.email
     dto.hasPassword = user.passwordHash !== null
     dto.subscriptionPlan = user.subscriptionPlan
+    dto.role = user.role
     dto.createdAt = user.createdAt
     dto.updatedAt = user.updatedAt
     return dto
