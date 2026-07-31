@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
@@ -54,6 +54,33 @@ const selected = ref<SubscriptionPlan | null>(currentPlan.value)
 const loading = ref(false)
 const errorMessage = ref('')
 
+// carrossel (só mobile): 1 card por vez + setas. activeIndex vem do scroll.
+const scroller = ref<HTMLElement | null>(null)
+const activeIndex = ref(0)
+
+function onScroll() {
+  const el = scroller.value
+  if (!el) return
+  activeIndex.value = Math.round(el.scrollLeft / el.clientWidth)
+}
+
+function goTo(index: number) {
+  const el = scroller.value
+  if (!el) return
+  const clamped = Math.max(0, Math.min(index, plans.length - 1))
+  el.scrollTo({ left: clamped * el.clientWidth, behavior: 'smooth' })
+}
+
+// abre já no plano em destaque (anual) se nenhum estiver escolhido
+onMounted(async () => {
+  const start = plans.findIndex((p) => p.id === (currentPlan.value ?? 'anual'))
+  if (start > 0) {
+    await nextTick()
+    scroller.value?.scrollTo({ left: start * scroller.value.clientWidth })
+    activeIndex.value = start
+  }
+})
+
 async function handleSubscribe() {
   if (!selected.value) return
 
@@ -91,13 +118,16 @@ async function handleSubscribe() {
         </p>
       </header>
 
+      <div class="relative">
       <div
-        class="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-4 md:mx-0 md:gap-6 md:overflow-visible md:px-0 md:pb-0"
+        ref="scroller"
+        class="hide-scrollbar -mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-4 md:mx-0 md:gap-6 md:overflow-visible md:px-0 md:pb-0"
+        @scroll.passive="onScroll"
       >
         <article
           v-for="plan in plans"
           :key="plan.id"
-          class="relative flex w-[80%] shrink-0 cursor-pointer snap-center flex-col rounded-2xl border bg-white p-8 transition sm:w-[65%] md:w-auto md:flex-1 md:shrink"
+          class="relative flex w-full shrink-0 cursor-pointer snap-center flex-col rounded-2xl border bg-white p-8 transition md:w-auto md:flex-1 md:shrink"
           :class="[
             selected === plan.id
               ? 'border-champagne-500 ring-2 ring-champagne-300/40'
@@ -145,6 +175,46 @@ async function handleSubscribe() {
         </article>
       </div>
 
+        <!-- seta anterior (só mobile) -->
+        <button
+          v-show="activeIndex > 0"
+          type="button"
+          aria-label="Plano anterior"
+          class="absolute left-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-stone-600 shadow-md backdrop-blur transition hover:text-champagne-600 md:hidden"
+          @click="goTo(activeIndex - 1)"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 5l-5 5 5 5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+
+        <!-- seta próximo (só mobile) -->
+        <button
+          v-show="activeIndex < plans.length - 1"
+          type="button"
+          aria-label="Próximo plano"
+          class="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-stone-600 shadow-md backdrop-blur transition hover:text-champagne-600 md:hidden"
+          @click="goTo(activeIndex + 1)"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M8 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- indicadores (só mobile) -->
+      <div class="mt-4 flex justify-center gap-2 md:hidden">
+        <button
+          v-for="(plan, i) in plans"
+          :key="plan.id"
+          type="button"
+          :aria-label="`Ir para ${plan.name}`"
+          class="h-2 rounded-full transition-all"
+          :class="i === activeIndex ? 'w-6 bg-champagne-500' : 'w-2 bg-stone-300'"
+          @click="goTo(i)"
+        />
+      </div>
+
       <p
         v-if="errorMessage"
         class="mx-auto mt-8 max-w-md rounded-lg bg-red-50 px-4 py-3 text-center text-xs text-red-600"
@@ -174,3 +244,14 @@ async function handleSubscribe() {
     <AppFooter />
   </main>
 </template>
+
+<style scoped>
+/* esconde a barra de rolagem do carrossel (mobile) sem perder o scroll/swipe */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+</style>
