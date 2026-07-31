@@ -175,12 +175,15 @@ async function handleSubscribe() {
         </article>
       </div>
 
-        <!-- seta anterior (só mobile) -->
+      </div>
+
+      <!-- navegação do carrossel: setas + indicadores (só mobile) -->
+      <div class="mt-4 flex items-center justify-center gap-4 md:hidden">
         <button
-          v-show="activeIndex > 0"
           type="button"
           aria-label="Plano anterior"
-          class="absolute left-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-stone-600 shadow-md backdrop-blur transition hover:text-champagne-600 md:hidden"
+          :disabled="activeIndex === 0"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600 shadow-sm transition hover:text-champagne-600 disabled:opacity-30"
           @click="goTo(activeIndex - 1)"
         >
           <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -188,31 +191,29 @@ async function handleSubscribe() {
           </svg>
         </button>
 
-        <!-- seta próximo (só mobile) -->
+        <div class="flex items-center gap-2">
+          <button
+            v-for="(plan, i) in plans"
+            :key="plan.id"
+            type="button"
+            :aria-label="`Ir para ${plan.name}`"
+            class="h-2 rounded-full transition-all"
+            :class="i === activeIndex ? 'w-6 bg-champagne-500' : 'w-2 bg-stone-300'"
+            @click="goTo(i)"
+          />
+        </div>
+
         <button
-          v-show="activeIndex < plans.length - 1"
           type="button"
           aria-label="Próximo plano"
-          class="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/90 text-stone-600 shadow-md backdrop-blur transition hover:text-champagne-600 md:hidden"
+          :disabled="activeIndex === plans.length - 1"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600 shadow-sm transition hover:text-champagne-600 disabled:opacity-30"
           @click="goTo(activeIndex + 1)"
         >
           <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M8 5l5 5-5 5" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
-      </div>
-
-      <!-- indicadores (só mobile) -->
-      <div class="mt-4 flex justify-center gap-2 md:hidden">
-        <button
-          v-for="(plan, i) in plans"
-          :key="plan.id"
-          type="button"
-          :aria-label="`Ir para ${plan.name}`"
-          class="h-2 rounded-full transition-all"
-          :class="i === activeIndex ? 'w-6 bg-champagne-500' : 'w-2 bg-stone-300'"
-          @click="goTo(i)"
-        />
       </div>
 
       <p
