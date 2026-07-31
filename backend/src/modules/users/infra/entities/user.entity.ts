@@ -5,7 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
-import { IUser, SubscriptionPlan, UserRole } from '../../domain/entities/i-user'
+import { IUser, SubscriptionPlan, SubscriptionStatus, UserRole } from '../../domain/entities/i-user'
 
 @Entity('users')
 export class UserEntity implements IUser {
@@ -23,6 +23,9 @@ export class UserEntity implements IUser {
 
   @Column({ type: 'varchar', nullable: true })
   subscriptionPlan: SubscriptionPlan | null
+
+  @Column({ type: 'varchar', nullable: true })
+  subscriptionStatus: SubscriptionStatus | null
 
   @Column({ type: 'varchar', default: 'user' })
   role: UserRole

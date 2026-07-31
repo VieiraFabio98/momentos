@@ -1,4 +1,4 @@
-import { IUser, SubscriptionPlan, UserRole } from '../entities/i-user'
+import { IUser, SubscriptionPlan, SubscriptionStatus, UserRole } from '../entities/i-user'
 
 export const USER_WRITE_REPOSITORY = Symbol('USER_WRITE_REPOSITORY')
 
@@ -14,6 +14,7 @@ export interface IUpdateUserData {
   email?: string
   passwordHash?: string
   subscriptionPlan?: SubscriptionPlan | null
+  subscriptionStatus?: SubscriptionStatus | null
   role?: UserRole
 }
 

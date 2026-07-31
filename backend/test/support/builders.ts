@@ -11,6 +11,7 @@ export function makeUser(overrides: Partial<IUser> = {}): IUser {
     email: 'ana@example.com',
     passwordHash: 'hashed-password',
     subscriptionPlan: null,
+    subscriptionStatus: null,
     role: 'user',
     createdAt: NOW,
     updatedAt: NOW,
