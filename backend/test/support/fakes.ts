@@ -28,7 +28,20 @@ import {
   ICreateUserData,
   IUpdateUserData,
 } from '../../src/modules/users/domain/repositories/i-user-write-repository'
-import { makeEvent, makePhoto, makeUser } from './builders'
+import { ISubscription } from '../../src/modules/billing/domain/entities/i-subscription'
+import {
+  ICreatePreapprovalInput,
+  ICreatePreapprovalResult,
+  IPaymentProvider,
+  IPreapprovalDetails,
+  IVerifyNotificationInput,
+} from '../../src/modules/billing/domain/providers/i-payment-provider'
+import { ISubscriptionRepository } from '../../src/modules/billing/domain/repositories/i-subscription-repository'
+import {
+  ICreateSubscriptionData,
+  IUpdateSubscriptionData,
+} from '../../src/modules/billing/domain/repositories/i-subscription-write-repository'
+import { makeEvent, makePhoto, makeSubscription, makeUser } from './builders'
 
 export class FakeEventRepository implements IEventRepository {
   constructor(public events: IEvent[] = []) {}
@@ -259,6 +272,75 @@ export class FakeOAuthProvider implements IOAuthProvider {
 export class FakeQrCodeProvider implements IQrCodeProvider {
   async toDataUrl(content: string): Promise<string> {
     return `data:image/png;base64,${Buffer.from(content).toString('base64')}`
+  }
+}
+
+export class FakeSubscriptionRepository implements ISubscriptionRepository {
+  constructor(public subscriptions: ISubscription[] = []) {}
+
+  async findById(id: string): Promise<ISubscription | null> {
+    return this.subscriptions.find((s) => s.id === id) ?? null
+  }
+
+  async findLatestByUserId(userId: string): Promise<ISubscription | null> {
+    // mais recente primeiro, igual ao repo real (order createdAt DESC)
+    return (
+      [...this.subscriptions]
+        .filter((s) => s.userId === userId)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ?? null
+    )
+  }
+
+  async findByProviderSubscriptionId(providerSubscriptionId: string): Promise<ISubscription | null> {
+    return this.subscriptions.find((s) => s.providerSubscriptionId === providerSubscriptionId) ?? null
+  }
+
+  async create(data: ICreateSubscriptionData): Promise<ISubscription> {
+    const subscription = makeSubscription({ ...data, id: `sub-${this.subscriptions.length + 1}` })
+    this.subscriptions.push(subscription)
+    return subscription
+  }
+
+  async update(id: string, data: IUpdateSubscriptionData): Promise<ISubscription> {
+    const index = this.subscriptions.findIndex((s) => s.id === id)
+    const updated = { ...this.subscriptions[index], ...stripUndefined(data) }
+    this.subscriptions[index] = updated
+    return updated
+  }
+}
+
+// Provider de pagamento fake para testes: comportamento configurável por campos
+// públicos (o status que o "gateway" reporta, autenticidade da notificação).
+export class FakePaymentProvider implements IPaymentProvider {
+  public created: ICreatePreapprovalInput[] = []
+  public canceled: string[] = []
+  public nextDetails: IPreapprovalDetails | null = null
+  public authentic = true
+
+  async createPreapproval(input: ICreatePreapprovalInput): Promise<ICreatePreapprovalResult> {
+    this.created.push(input)
+    return {
+      providerSubscriptionId: `mp-${this.created.length}`,
+      initPoint: `https://mp.test/checkout?preapproval_id=mp-${this.created.length}`,
+    }
+  }
+
+  async getPreapproval(providerSubscriptionId: string): Promise<IPreapprovalDetails | null> {
+    if (this.nextDetails) return this.nextDetails
+    return {
+      providerSubscriptionId,
+      status: 'active',
+      externalReference: null,
+      currentPeriodEnd: null,
+    }
+  }
+
+  async cancel(providerSubscriptionId: string): Promise<void> {
+    this.canceled.push(providerSubscriptionId)
+  }
+
+  verifyNotification(_input: IVerifyNotificationInput): boolean {
+    return this.authentic
   }
 }
 

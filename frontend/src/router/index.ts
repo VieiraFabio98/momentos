@@ -38,6 +38,14 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      // retorno do checkout do Mercado Pago (back_url do preapproval): faz poll
+      // do status até o webhook confirmar o pagamento
+      path: '/assinatura/retorno',
+      name: 'subscription-return',
+      component: () => import('../views/SubscriptionReturnView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/events/:id',
       name: 'event-detail',
       component: () => import('../views/EventDetailView.vue'),

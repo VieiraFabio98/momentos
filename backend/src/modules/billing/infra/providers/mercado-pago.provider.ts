@@ -7,7 +7,7 @@ import {
   IPaymentProvider,
   IPreapprovalDetails,
 } from '../../domain/providers/i-payment-provider'
-import { PLAN_CATALOG } from '../../domain/services/plan-catalog'
+import { getPlanConfig } from '../../domain/services/plan-catalog'
 
 // Traduz o status do preapproval do Mercado Pago para o nosso vocabulário. O MP
 // usa 'authorized' para assinatura pagando em dia; qualquer status desconhecido
@@ -46,7 +46,7 @@ export class MercadoPagoProvider implements IPaymentProvider {
   }
 
   async createPreapproval(input: ICreatePreapprovalInput): Promise<ICreatePreapprovalResult> {
-    const config = PLAN_CATALOG[input.plan]
+    const config = getPlanConfig(input.plan)
 
     const response = await this.preapproval.create({
       body: {

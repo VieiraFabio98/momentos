@@ -27,6 +27,12 @@ async function handleSubmit() {
     draft.reset()
     router.push({ name: 'dashboard' })
   } catch (error) {
+    // 403 = gate de pagamento (sem assinatura ativa): manda pros planos em vez
+    // de mostrar erro cru
+    if (error instanceof ApiError && error.status === 403) {
+      router.push({ name: 'subscription' })
+      return
+    }
     errorMessage.value =
       error instanceof ApiError ? error.message : 'Não foi possível conectar ao servidor'
   } finally {

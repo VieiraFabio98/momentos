@@ -8,8 +8,13 @@ export interface IUserResponse {
   email: string
   // false em conta criada só pelo Google: não há senha atual para conferir
   hasPassword: boolean
-  // plano de assinatura da conta; null enquanto não assinou. Sem cobrança ainda.
+  // plano de assinatura da conta; null enquanto não assinou
   subscriptionPlan: SubscriptionPlan | null
+  // espelho do status da assinatura; null enquanto nunca assinou. Usado pelo gate
+  // (só 'active' libera criar evento) e pelos badges de plano.
+  subscriptionStatus: 'pending' | 'active' | 'paused' | 'canceled' | null
+  // admin cria evento sem assinatura ativa (conta interna); user é pagante
+  role: 'admin' | 'user'
   createdAt: string
   updatedAt: string
 }

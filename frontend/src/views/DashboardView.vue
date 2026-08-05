@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
@@ -12,6 +12,16 @@ const auth = useAuthStore()
 const router = useRouter()
 const loading = ref(true)
 const events = ref<IEventResponse[]>([])
+
+// gate de pagamento (espelha o backend): só assinatura ativa — ou conta admin —
+// pode criar evento. Sem isso, o botão leva para os planos em vez de criar.
+const canCreate = computed(
+  () => auth.user?.role === 'admin' || auth.user?.subscriptionStatus === 'active',
+)
+
+function goCreate() {
+  router.push({ name: canCreate.value ? 'event-create' : 'subscription' })
+}
 
 const statusLabels: Record<string, { text: string; classes: string }> = {
   draft: { text: 'Aguardando ativação', classes: 'bg-amber-50 text-amber-700' },
@@ -73,14 +83,18 @@ onMounted(async () => {
         <div class="text-center">
           <h2 class="font-display text-4xl font-medium text-stone-800">Seu evento</h2>
           <p class="mx-auto mt-3 max-w-md text-sm font-light text-stone-500">
-            Crie seu dia especial e comece a colecionar os momentos.
+            {{
+              canCreate
+                ? 'Crie seu dia especial e comece a colecionar os momentos.'
+                : 'Assine um plano para criar seus eventos e colecionar os momentos.'
+            }}
           </p>
           <button
             type="button"
             class="mt-8 rounded-lg bg-champagne-500 px-8 py-3 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
-            @click="router.push({ name: 'event-create' })"
+            @click="goCreate"
           >
-            Criar evento
+            {{ canCreate ? 'Criar evento' : 'Ver planos' }}
           </button>
         </div>
       </template>
@@ -91,9 +105,9 @@ onMounted(async () => {
           <button
             type="button"
             class="rounded-lg bg-champagne-500 px-6 py-2.5 text-sm font-medium tracking-wide text-white transition hover:bg-champagne-600"
-            @click="router.push({ name: 'event-create' })"
+            @click="goCreate"
           >
-            Criar evento
+            {{ canCreate ? 'Criar evento' : 'Ver planos' }}
           </button>
         </div>
 

@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { randomBytes } from 'node:crypto'
-import { badRequest, created, HttpResponse } from '../../../../shared/helpers'
+import { badRequest, created, forbidden, HttpResponse, unauthorized } from '../../../../shared/helpers'
+import { IUser } from '../../../users/domain/entities/i-user'
 import { IMailProvider, MAIL_PROVIDER } from '../../../mail/domain/i-mail-provider'
 import {
   IUserReadRepository,
@@ -29,6 +30,17 @@ export class CreateEventUseCase {
   ) {}
 
   async execute(userId: string, dto: CreateEventDto): Promise<HttpResponse> {
+    // Gate de pagamento: só cria evento quem tem assinatura ativa. Conta admin
+    // (interna) passa direto — cria sem assinar. Usa o espelho subscription_status
+    // do user (cache do módulo billing).
+    const user = await this.userReadRepository.findById(userId)
+    if (!user) {
+      return unauthorized()
+    }
+    if (user.role !== 'admin' && user.subscriptionStatus !== 'active') {
+      return forbidden()
+    }
+
     const opensAtInput = new Date(dto.opensAt)
     if (!opensAtMatchesEventDate(opensAtInput, dto.eventDate)) {
       return badRequest('O início dos envios deve ser no dia do evento')
@@ -46,16 +58,13 @@ export class CreateEventUseCase {
       expiresAt,
     })
 
-    await this.sendCreatedEmail(userId, event)
+    await this.sendCreatedEmail(user, event)
 
     return created(EventResponseDto.fromDomain(event))
   }
 
-  private async sendCreatedEmail(userId: string, event: IEvent): Promise<void> {
+  private async sendCreatedEmail(user: IUser, event: IEvent): Promise<void> {
     try {
-      const user = await this.userReadRepository.findById(userId)
-      if (!user) return
-
       const window =
         event.opensAt && event.expiresAt
           ? `<p>Os convidados poderão enviar fotos de

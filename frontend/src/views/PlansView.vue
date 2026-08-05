@@ -5,12 +5,15 @@ import AppFooter from '../components/AppFooter.vue'
 import AppHeader from '../components/AppHeader.vue'
 import { ApiError } from '../services/api'
 import type { SubscriptionPlan } from '../services/auth'
+import { getPlans, startSubscription } from '../services/billing'
 import { useAuthStore } from '../stores/auth'
 
+// meta de vitrine (nome, features, destaque) é copy do front; o preço NÃO fica
+// aqui — vem do backend (/billing/plans, que lê o .env) pra não divergir da
+// cobrança real.
 interface IPlan {
   id: SubscriptionPlan
   name: string
-  price: string
   priceNote: string
   highlight: boolean
   features: string[]
@@ -20,7 +23,6 @@ const plans: IPlan[] = [
   {
     id: 'mensal',
     name: 'Mensal',
-    price: 'R$ 49,99',
     priceNote: 'por mês',
     highlight: false,
     features: [
@@ -34,7 +36,6 @@ const plans: IPlan[] = [
   {
     id: 'anual',
     name: 'Anual',
-    price: 'R$ 499',
     priceNote: 'por ano · 2 meses grátis',
     highlight: true,
     features: [
@@ -45,6 +46,14 @@ const plans: IPlan[] = [
     ],
   },
 ]
+
+// preço formatado por plano, carregado do backend; '—' enquanto não chega
+const prices = ref<Record<SubscriptionPlan, string>>({ mensal: '—', anual: '—' })
+const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+
+function priceFor(id: SubscriptionPlan): string {
+  return prices.value[id]
+}
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -81,19 +90,32 @@ onMounted(async () => {
   }
 })
 
+// preços do backend (fonte única, vem do .env); falha silenciosa mantém o '—'
+onMounted(async () => {
+  try {
+    const catalog = await getPlans()
+    for (const item of catalog) {
+      prices.value[item.plan] = brl.format(item.amount)
+    }
+  } catch {
+    // sem preço não trava a tela; o botão de assinar continua funcionando
+  }
+})
+
 async function handleSubscribe() {
   if (!selected.value) return
 
   loading.value = true
   errorMessage.value = ''
   try {
-    // sem gateway: só grava a escolha na conta
-    await auth.subscribe(selected.value)
-    router.push({ name: 'dashboard' })
+    // cria o preapproval no gateway e redireciona pro checkout do Mercado Pago;
+    // a confirmação do pagamento volta pela tela /assinatura/retorno
+    const { initPoint } = await startSubscription(selected.value)
+    window.location.href = initPoint
+    // não zera loading: a página está navegando para fora
   } catch (error) {
     errorMessage.value =
       error instanceof ApiError ? error.message : 'Não foi possível conectar ao servidor'
-  } finally {
     loading.value = false
   }
 }
@@ -146,7 +168,7 @@ async function handleSubscribe() {
 
           <h3 class="font-display text-2xl font-medium text-stone-800">{{ plan.name }}</h3>
           <p class="mt-4">
-            <span class="font-display text-4xl font-semibold text-stone-800">{{ plan.price }}</span>
+            <span class="font-display text-4xl font-semibold text-stone-800">{{ priceFor(plan.id) }}</span>
             <span class="ml-1 text-xs text-stone-400">{{ plan.priceNote }}</span>
           </p>
 

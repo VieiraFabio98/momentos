@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../../auth/infra/guards/jwt-auth.guard'
 import { StartSubscriptionDto } from '../../application/dto/start-subscription.dto'
 import { CancelSubscriptionUseCase } from '../../application/use-cases/cancel-subscription.use-case'
 import { GetMySubscriptionUseCase } from '../../application/use-cases/get-my-subscription.use-case'
+import { GetPlansUseCase } from '../../application/use-cases/get-plans.use-case'
 import { HandleWebhookUseCase } from '../../application/use-cases/handle-webhook.use-case'
 import { StartSubscriptionUseCase } from '../../application/use-cases/start-subscription.use-case'
 
@@ -24,7 +25,14 @@ export class BillingController {
     private readonly getMySubscriptionUseCase: GetMySubscriptionUseCase,
     private readonly cancelSubscriptionUseCase: CancelSubscriptionUseCase,
     private readonly handleWebhookUseCase: HandleWebhookUseCase,
+    private readonly getPlansUseCase: GetPlansUseCase,
   ) {}
+
+  // Vitrine de preços; pública (a página de planos pode ser vista sem login).
+  @Get('plans')
+  plans(): Promise<HttpResponse> {
+    return this.getPlansUseCase.execute()
+  }
 
   // Inicia a assinatura e devolve { initPoint }; o front redireciona para lá.
   @Post('subscribe')

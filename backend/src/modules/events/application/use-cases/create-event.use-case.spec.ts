@@ -21,7 +21,9 @@ describe('CreateEventUseCase', () => {
 
   beforeEach(() => {
     events = new FakeEventRepository()
-    users = new FakeUserRepository([makeUser()])
+    // assinatura ativa por padrão para exercitar o caminho feliz; os testes do
+    // gate sobrescrevem o status/role
+    users = new FakeUserRepository([makeUser({ subscriptionStatus: 'active' })])
     mail = new FakeMailProvider()
     useCase = new CreateEventUseCase(events, users, mail)
   })
@@ -70,5 +72,40 @@ describe('CreateEventUseCase', () => {
 
     expect(response.statusCode).toBe(201)
     expect(events.events).toHaveLength(1)
+  })
+
+  it('bloqueia (403) quem não tem assinatura ativa', async () => {
+    users.users[0].subscriptionStatus = null
+
+    const response = await useCase.execute('user-1', dto)
+
+    expect(response.statusCode).toBe(403)
+    expect(events.events).toHaveLength(0)
+  })
+
+  it('bloqueia (403) assinatura pendente ou pausada', async () => {
+    users.users[0].subscriptionStatus = 'pending'
+
+    const response = await useCase.execute('user-1', dto)
+
+    expect(response.statusCode).toBe(403)
+    expect(events.events).toHaveLength(0)
+  })
+
+  it('deixa admin criar evento sem assinatura ativa', async () => {
+    users.users[0].role = 'admin'
+    users.users[0].subscriptionStatus = null
+
+    const response = await useCase.execute('user-1', dto)
+
+    expect(response.statusCode).toBe(201)
+    expect(events.events).toHaveLength(1)
+  })
+
+  it('401 quando a conta do token não existe mais', async () => {
+    const response = await useCase.execute('fantasma', dto)
+
+    expect(response.statusCode).toBe(401)
+    expect(events.events).toHaveLength(0)
   })
 })

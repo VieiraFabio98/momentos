@@ -1,3 +1,4 @@
+import { ISubscription } from '../../src/modules/billing/domain/entities/i-subscription'
 import { IEvent } from '../../src/modules/events/domain/entities/i-event'
 import { IPhoto } from '../../src/modules/photos/domain/entities/i-photo'
 import { IUser } from '../../src/modules/users/domain/entities/i-user'
@@ -49,6 +50,20 @@ export function makePhoto(overrides: Partial<IPhoto> = {}): IPhoto {
     consentVersion: '1',
     consentedAt: NOW,
     createdAt: NOW,
+    ...overrides,
+  }
+}
+
+export function makeSubscription(overrides: Partial<ISubscription> = {}): ISubscription {
+  return {
+    id: 'sub-1',
+    userId: 'user-1',
+    plan: 'mensal',
+    status: 'pending',
+    providerSubscriptionId: 'mp-preapproval-1',
+    currentPeriodEnd: null,
+    createdAt: NOW,
+    updatedAt: NOW,
     ...overrides,
   }
 }
