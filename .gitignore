@@ -1,0 +1,7 @@
+# Env de produção (segredos) — nunca comitar
+.env
+.env.production
+
+# Node
+node_modules/
+*.log
